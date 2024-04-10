@@ -1,0 +1,5 @@
+version: "3.9"
+services:
+  coala-bot:
+    container_name: "coala-bot"
+    build: .
