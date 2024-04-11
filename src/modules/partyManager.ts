@@ -1,4 +1,4 @@
-import { Client, GuildMember, ButtonInteraction, VoiceBasedChannel, BaseMessageOptions, EmbedBuilder, ButtonBuilder, ButtonStyle, ActionRowBuilder, ModalSubmitInteraction, User } from "discord.js"
+import { Client, GuildMember, ButtonInteraction, VoiceBasedChannel, BaseMessageOptions, EmbedBuilder, ButtonBuilder, ButtonStyle, ActionRowBuilder, ModalSubmitInteraction, User, Channel } from "discord.js"
 import Party from "../models/party";
 import Util from "../util/utils";
 import Module from "../models/module";
@@ -16,12 +16,32 @@ class PartyManager extends Module {
         this.initPartyManagement();
     }
 
-    private initPartyManagement(): void {
-        const channelIdToManage = "1225177015645372508";
+    private buildChannelCache() {
+        if(process.env.MANAGED_CHANNELS) {
+            const channelIdList: string[] = process.env.MANAGED_CHANNELS.split(" ");
+            for(const channelId of channelIdList) {
+                const channel: Channel | undefined = this.client.channels.cache.get(channelId);
+                if(channel?.isVoiceBased()) { 
+                    PartyManager.managedChannels.set(channel.id, channel);
+                    this.logger.success(`Gerenciando canal de voz [${channel.name}] no servidor [${channel.guild.name}]`);
+                } else {
+                    this.logger.warning(`Canal de voz [${channelId}] não encontrado. Ignorando.`)
+                    continue;
+                }
+            }
+        }
+    }
 
-        this.logger.success(`Gerenciando canal de voz ${channelIdToManage}`);
+    private buildPartyCache() {
+        // TODO: Necessário para manter registro de parties antigas no caso do programa ser reiniciado ou crashar.
+    }
+
+    private initPartyManagement(): void {
+        this.buildChannelCache();
+        this.buildPartyCache();
+
         this.client.on('voiceStateUpdate', async (oldVoiceState, newVoiceState) => {
-            // Se um membro se conectou/desconectou a um canal
+            // Se um membro se conectou/desconectou a um canal.
             if (newVoiceState.channel !== oldVoiceState.channel) {
                 if(!newVoiceState.member) return;
                 const member: GuildMember = newVoiceState.member;
@@ -31,7 +51,7 @@ class PartyManager extends Module {
                 const partyEntered: Party | undefined = (newVoiceState.channelId) ? PartyManager.parties.get(newVoiceState.channelId) : undefined;
                 const partyExited: Party | undefined = (oldVoiceState.channelId) ? PartyManager.parties.get(oldVoiceState.channelId) : undefined;
 
-                if(newVoiceState.channel && newVoiceState.channel.id === channelIdToManage) { // Se o canal é gerenciado pelo bot cria party e move usuário
+                if(newVoiceState.channel && PartyManager.managedChannels.get(newVoiceState.channel.id)) { // Se o canal é gerenciado pelo bot.
                     try {
                         await this.CreateParty(member, partyDefaultName, newVoiceState.channel);
                     } catch(error) {
@@ -47,11 +67,12 @@ class PartyManager extends Module {
                         this.logger.error(Util.getErrorMessage(error));
                     }
                 }
-                else if(partyExited) {// Se desconectou de alguma party
+                else if(partyExited) { // Se desconectou de alguma party
                     try {
                         await partyExited.removeUser(member);
                         this.logger.success(`${userName} saiu da party [${partyExited.voiceChannel.name}]. ${partyExited.connectedUsers} usuários restantes.`);
-                        // Remove party da lista se estiver vazia.
+                        
+                        // Remove party do cache se estiver vazia.
                         if(partyExited.connectedUsers <= 0) {
                             this.logger.success(`Nenhum membro restante em [${partyExited.voiceChannel.name}], excluindo...`);
                             PartyManager.parties.delete(partyExited.voiceChannel.id);

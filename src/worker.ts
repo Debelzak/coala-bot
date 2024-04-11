@@ -1,4 +1,4 @@
-import { ApplicationCommand, Client, GatewayIntentBits, Guild, GuildMember } from "discord.js";
+import { ApplicationCommand, Client, GatewayIntentBits, Guild, GuildMember, GuildResolvable } from "discord.js";
 import * as commands from "./commands";
 import PartyManager from "./modules/partyManager";
 import handler from "./handler";
@@ -6,9 +6,11 @@ import Logger from "./logger";
 import Util from "./util/utils";
 
 class Worker extends Client {
+    private developmentMode: boolean = false;
+    private exclusiveGuildId: string | undefined;
     private logger: Logger;
 
-    constructor(token: string, guildId: string)
+    constructor(token: string | undefined, guildId?: string)
     {
         const options = {
             intents: [
@@ -20,15 +22,21 @@ class Worker extends Client {
         super(options);
 
         this.logger = new Logger(this.constructor.name);
-        this.login(token);
+
+        if(guildId) this.exclusiveGuildId = guildId;
+        if(process.env.DEVELOPMENT === "TRUE") this.developmentMode = true;
+
+        this.login(token)
+            .then(() => this.logger.success(`Conectado como ${this.user?.tag}!`))
+            .catch((error: Error) => this.logger.error(error.message));
 
         this.on('ready', () => {
-            this.RegisterCommands(guildId);
+            this.RegisterCommands();
             this.ManageInteractions();
             this.LoadModules();
             
             this.logger.success("Thread principal iniciada!");
-            this.logger.success(`Conectado como ${this.user?.tag}!`);
+            if(process.env.SILENT === "TRUE") Logger.silent = true;
         })
     }
 
@@ -36,21 +44,33 @@ class Worker extends Client {
         new PartyManager(this).init();
     }
 
-    private async RegisterCommands(guildId: string)
-    {
-        const guild: Guild | undefined = this.guilds.cache.get(guildId);
+    private async CleanGlobalCommands(): Promise<void> {
+        // Clean commands
+        const currentGlobalCommands = await this.application?.commands.fetch();
+        currentGlobalCommands?.map(async (command) => {
+            await command.delete();
+        })
+    }
 
-        if (!guild) {
-            this.logger.error(`Não foi possível encontrar o servidor com ID ${guildId}`);
-            return;
+    private async RegisterCommands(): Promise<void>
+    {
+        let guild: Guild | undefined;
+        if(this.exclusiveGuildId) {
+            guild = this.guilds.cache.get(this.exclusiveGuildId);
         }
 
-        const promises: Promise<ApplicationCommand<{}>>[] = [];
+        const promises: (Promise<ApplicationCommand<{}>> | undefined)[] = [];
 
         for(const [key, command] of Object.entries(commands)) {
             try {
-                this.logger.success(`Registrando o comando /${command.name}`);
-                promises.push(guild.commands?.create(command)); //client.application?.command
+                if(this.developmentMode && guild) {
+                    this.logger.success(`Registrando o comando /${command.name} para o servidor [${guild.name}]`);
+                    promises.push(guild.commands?.create(command));
+                } else {
+                    this.logger.success(`Registrando o comando global /${command.name}`);
+                    promises.push(this.application?.commands.create(command));
+                }
+
             } catch (error) {
                 this.logger.error(Util.getErrorMessage(error));
                 promises.push(Promise.reject(error));
