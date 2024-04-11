@@ -1,6 +1,5 @@
 import { VoiceBasedChannel, GuildMember, BaseMessageOptions, EmbedBuilder, ButtonBuilder, ButtonStyle, ActionRowBuilder } from "discord.js";
 import {v4 as uuidv4} from "uuid"
-import Util from "../util/utils"
 
 class Party
 {
@@ -41,7 +40,7 @@ class Party
 
     public async rename(newName: string): Promise<void> {
         if (this.isRenameable()) {
-            this.voiceChannel.setName(newName);
+            await this.voiceChannel.setName(newName);
             this.lastRenameTimestamp = Date.now();
         } else {
             throw new Error('Só é possível alterar o nome da Party uma vez a cada 5 minutos.');

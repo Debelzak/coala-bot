@@ -1,24 +1,33 @@
 import { EmbedBuilder, Interaction } from "discord.js"
-import * as commands from "../../commands"
 import os from "os"
+import Util from "../../util/utils";
+import * as commands from "../../commands"
 
 export default {
     name: "help",
     async run(interaction: Interaction): Promise<void> {
         if(!interaction.isCommand()) return;
 
-        const embedMessage = new EmbedBuilder();
-        embedMessage.setTitle("Comandos disponíveis")
-        for(const [key, value] of Object.entries(commands)) {
-            embedMessage.addFields(
-                { name: `${value.name}`, value: `${value.description}`, inline: false},
-            )
+        const gitVersion: string = (await Util.getCommitHash()).substring(0, 7);
+        const version: string = (gitVersion !== "null") ? `${gitVersion}-git` : "unknown";
+        let availableCommands: string = "";
+        for(const [key, command] of Object.entries(commands)) {
+            availableCommands = availableCommands.concat(`**/${command.name}** : ${command.description} \n`);
         }
 
-        const pkg = require("../../../package.json");
-        embedMessage.addFields(
-            { name: `Debug info`, value: `\`\`\`\nversion(${pkg.version}) host(${os.hostname()})\nhash(a0902384ldj)\n\`\`\``}
-        )
+        const embedMessage = new EmbedBuilder();
+        embedMessage.setColor("#2B2D31");
+        embedMessage.setTitle("Ajuda")
+        embedMessage.setDescription(`\
+**Comandos disponíveis** \n\
+${availableCommands} \n\
+**Debug Info** \n\
+\`\`\`\
+host(${os.hostname()}) build(${version}) \n\
+guildid(${interaction.guildId}) \
+apilatency(${Math.round(interaction.client.ws.ping)}ms)
+\`\`\`\
+        `)
     
         await interaction.reply({
                 embeds: [embedMessage]

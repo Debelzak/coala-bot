@@ -7,11 +7,9 @@ export default {
         if(!interaction.isButton()) return;
         const thisParty = (interaction.channelId) ? PartyManager.parties.get(interaction.channelId) : undefined;
     
-        // Check if party is found
-        if(!thisParty) {
-            throw new Error("Erro desconhecido");
-        }
-    
+        // Check if party was found
+        if(!thisParty) throw new Error("Erro desconhecido");
+
         const partyManager: PartyManager = new PartyManager(interaction.client);
         const isPartyOwner = await partyManager.CheckOwnership(interaction.user, thisParty, interaction);
         if(!isPartyOwner) {

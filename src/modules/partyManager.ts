@@ -22,8 +22,9 @@ class PartyManager extends Module {
         this.logger.success(`Gerenciando canal de voz ${channelIdToManage}`);
         this.client.on('voiceStateUpdate', async (oldVoiceState, newVoiceState) => {
             // Se um membro se conectou/desconectou a um canal
-            if (newVoiceState.channel !== oldVoiceState.channel) {                
-                const member: GuildMember = newVoiceState.member!;
+            if (newVoiceState.channel !== oldVoiceState.channel) {
+                if(!newVoiceState.member) return;
+                const member: GuildMember = newVoiceState.member;
                 const userName: string = member.user.displayName;
                 const partyDefaultName: string = `🚪Party de ${userName}`;
 
@@ -41,7 +42,7 @@ class PartyManager extends Module {
                 if(partyEntered) { // Se conectou a alguma party
                     try {
                         await partyEntered.addUser(member);
-                        this.logger.success(`${userName} entrou na party [${partyEntered.voiceChannel.name}]. ${partyEntered.connectedUsers} usuários conectados.`);
+                        this.logger.success(`${userName} entrou na party [${partyEntered.voiceChannel.name}]. ${partyEntered.connectedUsers} usuários restantes.`);
                     } catch(error) {
                         this.logger.error(Util.getErrorMessage(error));
                     }
@@ -49,14 +50,14 @@ class PartyManager extends Module {
                 else if(partyExited) {// Se desconectou de alguma party
                     try {
                         await partyExited.removeUser(member);
-                        this.logger.success(`${userName} saiu da party [${partyExited.voiceChannel.name}]. ${partyExited.connectedUsers} usuários conectados.`);
+                        this.logger.success(`${userName} saiu da party [${partyExited.voiceChannel.name}]. ${partyExited.connectedUsers} usuários restantes.`);
                         // Remove party da lista se estiver vazia.
                         if(partyExited.connectedUsers <= 0) {
                             this.logger.success(`Nenhum membro restante em [${partyExited.voiceChannel.name}], excluindo...`);
                             PartyManager.parties.delete(partyExited.voiceChannel.id);
                         }
                     } catch(error) {
-                        Util.getErrorMessage(error);
+                        this.logger.error(Util.getErrorMessage(error));
                     }
                 }
             }
@@ -85,17 +86,11 @@ class PartyManager extends Module {
             .setEmoji("👑")
             .setCustomId("btn_transferPartyOwnership")
 
-        const lockParty = new ButtonBuilder()
-            .setLabel("Tornar Privada")
+        const togglePrivacy = new ButtonBuilder()
+            .setLabel(`${(party.isPrivate) ? "Tornar Pública" : "Tornar Privada"}`)
             .setStyle(ButtonStyle.Primary)
-            .setEmoji("🔒")
-            .setCustomId("btn_lockParty")
-
-        const unlockParty = new ButtonBuilder()
-            .setLabel("Tornar Pública")
-            .setStyle(ButtonStyle.Primary)
-            .setEmoji("🔒")
-            .setCustomId("btn_unlockParty")
+            .setEmoji(`${(party.isPrivate) ? "🔓" : "🔒"}`)
+            .setCustomId("btn_togglePartyPrivacy")
 
         const kickMember = new ButtonBuilder()
             .setCustomId("tt/kickMember")
@@ -121,7 +116,7 @@ class PartyManager extends Module {
 
         // First row
         firstRow.addComponents(renameParty);
-        (party.isPrivate) ? firstRow.addComponents(unlockParty) : firstRow.addComponents(lockParty);
+        firstRow.addComponents(togglePrivacy);
         
         // Second row
         secondRow.addComponents(transferPartyOwnership, kickMember);
@@ -143,6 +138,7 @@ class PartyManager extends Module {
             const party = new Party(owner.id);
 
             party.voiceChannel = await baseChannel.clone({name: partyName});
+            owner.voice.setChannel(party.voiceChannel);
             party.voiceChannel.permissionOverwrites.edit(party.voiceChannel.guild.roles.everyone, {SendMessages:  true})
             party.voiceChannel.setUserLimit(8);
 
@@ -152,9 +148,6 @@ class PartyManager extends Module {
             // Adiciona mensagem do bot para controlar canal através de interações por botões
             const controlMessage = await party.voiceChannel.send(`Party gerenciada por ${party.voiceChannel.client.user}`);
             controlMessage.edit(this.controlMessage(party));
-    
-
-            await owner.voice.setChannel(party.voiceChannel);
 
             return party;
         } catch (error) {
@@ -162,7 +155,7 @@ class PartyManager extends Module {
         }
     }
 
-    public async LockParty(requester: User, party: Party, interaction?: ButtonInteraction | ModalSubmitInteraction): Promise<void> {
+    public async TogglePrivacy(requester: User, party: Party, interaction?: ButtonInteraction | ModalSubmitInteraction): Promise<void> {
         try {
             const isPartyOwner = await this.CheckOwnership(requester, party, interaction);
             if(!isPartyOwner) {
@@ -170,43 +163,21 @@ class PartyManager extends Module {
             }
 
             await party.togglePrivacy();
-            this.logger.success(`A party [${party.voiceChannel.name}] foi trancada.`);
+            this.logger.success(`A privacidade de [${party.voiceChannel.name}] foi alterada para ${(party.isPrivate) ? "privada" : "pública"}.`);
 
             if(interaction) {
                 interaction.message?.edit(this.controlMessage(party));
+                const replyMessage = (party.isPrivate) ? `A party agora é privada e apenas membros com permissão podem participar.`
+                                     : `A party agora é pública e qualquer membro pode participar.`
                 await interaction.reply({
-                    content: `A party agora é privada e apenas membros com permissão podem entrar.`,
+                    content: replyMessage,
                     ephemeral: false,
                 })
             }
             
 
         } catch(error) {
-            this.logger.error(`Falha ao tentar trancar a party [${party.voiceChannel.name}] - ${Util.getErrorMessage(error)}`);
-        }
-    }
-
-    public async UnlockParty(requester: User, party: Party, interaction?: ButtonInteraction | ModalSubmitInteraction): Promise<void> {
-        try {
-            const isPartyOwner = await this.CheckOwnership(requester, party, interaction);
-            if(!isPartyOwner) {
-                return;
-            }
-
-            await party.togglePrivacy();
-            this.logger.success(`A party [${party.voiceChannel.name}] agora é pública.`);
-
-            if(interaction) {
-                interaction.message?.edit(this.controlMessage(party));
-                await interaction.reply({
-                    content: `A party agora é pública.`,
-                    ephemeral: false,
-                })
-            }
-            
-
-        } catch(error) {
-            this.logger.error(`Falha ao tentar destrancar a party [${party.voiceChannel.name}] - ${Util.getErrorMessage(error)}`);
+            this.logger.error(`Falha ao tentar trocar a privacidade de [${party.voiceChannel.name}] - ${Util.getErrorMessage(error)}`);
         }
     }
 
@@ -218,12 +189,12 @@ class PartyManager extends Module {
                 return;
             }
 
-            await party.rename(newName);
+            await party.rename(`🚪${newName}`);
             this.logger.success(`A party [${oldName}] foi renomeada para [${newName}]`);
 
             if(interaction) {
                 interaction.message?.edit(this.controlMessage(party));
-                await interaction.reply({
+                interaction.reply({
                     content: `${requester} renomeou a party para ${party.voiceChannel}.`,
                     ephemeral: false,
                 })

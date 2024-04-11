@@ -8,9 +8,7 @@ export default {
         const thisParty = (interaction.channelId) ? PartyManager.parties.get(interaction.channelId) : undefined;
     
         // Check if party was found
-        if(!thisParty) {
-            throw new Error("Erro desconhecido");
-        }
+        if(!thisParty) throw new Error("Erro desconhecido");
     
         const partyManager: PartyManager = new PartyManager(interaction.client);
         const isPartyOwner = await partyManager.CheckOwnership(interaction.user, thisParty, interaction);
@@ -18,9 +16,9 @@ export default {
             return;
         }
     
-        if(thisParty.connectedUsers <= 0) {
+        if(thisParty.connectedUsers <= 1) {
             await interaction.reply({
-                content: `Não existe ninguém para transferir a liderança.`,
+                content: `Não há ninguém para transferir a liderança.`,
                 ephemeral: true,
             });
             return;
@@ -33,7 +31,7 @@ export default {
             .setMinValues(1)
         
         for(const user of thisParty.participants) {
-            //if(user.id === interaction.user.id) continue;
+            if(user.id === interaction.user.id) continue;
     
             select.addOptions(
                 new StringSelectMenuOptionBuilder()
@@ -55,12 +53,12 @@ export default {
         const collector = reply.createMessageComponentCollector({
             componentType: ComponentType.StringSelect,
             filter: (i) => i.user.id === interaction.user.id && i.customId === interaction.id,
-            time: 5_000,
+            time: 60_000,
         });
 
         collector.on("collect", (newInteraction) => {
-            newInteraction.reply(`Novo líder da party agora é ${newInteraction.values[0]}`);
-            interaction.deleteReply();
+            interaction.deleteReply()
+            .then(() => newInteraction.reply(`Novo líder da party agora é ${newInteraction.values[0]}`))
         });
 
         collector.on("end", (collected, reason) => {
