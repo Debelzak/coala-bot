@@ -8,7 +8,7 @@ export default {
         const thisParty = (interaction.channelId) ? PartyManager.parties.get(interaction.channelId) : undefined;
     
         // Check if party was found
-        if(!thisParty) throw new Error("Erro desconhecido");
+        if(!thisParty) return;
     
         const partyManager: PartyManager = new PartyManager(interaction.client);
         const isPartyOwner = await partyManager.CheckOwnership(interaction.user, thisParty, interaction);
@@ -30,13 +30,13 @@ export default {
             .setMaxValues(1)
             .setMinValues(1)
         
-        for(const user of thisParty.participants) {
-            if(user.id === interaction.user.id) continue;
+        for(const user of thisParty.currentParticipants) {
+            if(user[1].id === interaction.user.id) continue;
     
             select.addOptions(
                 new StringSelectMenuOptionBuilder()
-                    .setLabel(`@${user.displayName}`)
-                    .setValue(user.id)
+                    .setLabel(`@${user[1].displayName}`)
+                    .setValue(user[1].id)
             );
         }
     
@@ -58,7 +58,17 @@ export default {
 
         collector.on("collect", (newInteraction) => {
             interaction.deleteReply()
-            .then(() => newInteraction.reply(`Novo líder da party agora é ${newInteraction.values[0]}`))
+                .then(async() => {
+                    const newLeaderId = newInteraction.values[0];
+                    const newLeader = partyManager.TransferOwnership(newLeaderId, thisParty);
+                    if(!newLeader) {
+                        newInteraction.reply({content: `Não foi possível alterar o líder da party, o membro não está disponível.`, ephemeral: true});
+                        return;
+                    }
+                    
+                    partyManager.ReloadControlMessage(thisParty);
+                    newInteraction.reply({content: `Liderança da party transferida.`, ephemeral: true})
+                })
         });
 
         collector.on("end", (collected, reason) => {

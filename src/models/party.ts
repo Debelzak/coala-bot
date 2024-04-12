@@ -1,4 +1,4 @@
-import { VoiceBasedChannel, GuildMember, BaseMessageOptions, EmbedBuilder, ButtonBuilder, ButtonStyle, ActionRowBuilder } from "discord.js";
+import { VoiceBasedChannel, GuildMember, Message } from "discord.js";
 import {v4 as uuidv4} from "uuid"
 
 class Party
@@ -8,34 +8,51 @@ class Party
     public partyId: string;
     public ownerId: string;
     public connectedUsers: number = 0;
-    public voiceChannel!: VoiceBasedChannel;
-    public participants: GuildMember[] = [];
+    public readonly voiceChannel: VoiceBasedChannel;
+    public readonly controlMessage: Message;
+    public currentParticipants: Map<string, GuildMember>;
+    public bannedParticipants: Map<string, GuildMember>;
+    public allowedParticipants: Map<string, GuildMember>;
     public isPrivate: boolean = false;
 
     private lastRenameTimestamp: number = 0;
 
-    constructor(ownerId: string) {
+    constructor(ownerId: string, voiceChannel: VoiceBasedChannel, controlMessage: Message) {
         this.partyId = uuidv4();
         this.ownerId = ownerId;
+        this.voiceChannel = voiceChannel;
+        this.controlMessage = controlMessage;
+        this.currentParticipants = new Map<string, GuildMember>();
+        this.bannedParticipants = new Map<string, GuildMember>();
+        this.allowedParticipants = new Map<string, GuildMember>();
     }
     
-    public async addUser(member: GuildMember): Promise<void> {
-        const currentMember = this.participants.filter((participant) => participant === member);
-        const isAlreadyMember: boolean = (currentMember.length > 0);
-        if(isAlreadyMember) return;
-        
-        this.participants.push(member);
+    public addUser(member: GuildMember): void {
+        if(this.currentParticipants.get(member.id)) return;
+
+        this.currentParticipants.set(member.id, member);
         this.connectedUsers++;
     }
 
-    public async removeUser(member: GuildMember): Promise<void> {
-        this.participants = this.participants.filter((participant) => participant !== member);
-        this.connectedUsers--;
+    public removeUser(member: GuildMember): void {
+        if(!this.currentParticipants.get(member.id)) return;
 
-        // Deleta party se vazia.
-        if(this.connectedUsers <= 0) {
-            await this.voiceChannel.delete();
-        }
+        this.currentParticipants.delete(member.id);
+        this.connectedUsers--;
+    }
+
+    public denyUserEntrance(member: GuildMember): void {
+        if(member.id === this.ownerId) return;
+
+        this.bannedParticipants.set(member.id, member);
+        this.allowedParticipants.delete(member.id);
+    }
+
+    public allowUserEntrance(member: GuildMember): void {
+        if(member.id === this.ownerId) return;
+
+        this.allowedParticipants.set(member.id, member);
+        this.bannedParticipants.delete(member.id);
     }
 
     public async rename(newName: string): Promise<void> {
@@ -47,6 +64,17 @@ class Party
         }
     }
 
+    public togglePrivacity() {
+        const newPrivacy: boolean = !this.isPrivate;
+        if (newPrivacy === true) {
+            this.currentParticipants.forEach((participant) => {
+                this.allowUserEntrance(participant);
+            })
+        }
+
+        this.isPrivate = newPrivacy;
+    }
+
     public isRenameable(): boolean
     {
         const elapsedTimeSinceLastRename = Date.now() - this.lastRenameTimestamp;
@@ -54,20 +82,17 @@ class Party
         return elapsedTimeSinceLastRename >= Party.renameInterval;
     }
 
-    public getNextRenameTimestamp(): number {
-        return this.lastRenameTimestamp + Party.renameInterval;
+    public changeOwner(participant: GuildMember): boolean {
+        if(!this.currentParticipants.get(participant.id)) {
+            throw new Error("Tentativa de passar a liderança para alguém que atualmente não é membro da party.")
+        }
+
+        this.ownerId = participant.id;
+        return true;
     }
 
-    public async togglePrivacy(): Promise<void> {
-        const newPrivacy: boolean = !this.isPrivate;
-        if (newPrivacy) {
-            for(const participant of this.participants)
-            {
-                this.voiceChannel.permissionOverwrites.edit(participant, {Connect:  true});
-            }
-        }
-        await this.voiceChannel.permissionOverwrites.edit(this.voiceChannel.guild.roles.everyone, {Connect: !newPrivacy});
-        this.isPrivate = newPrivacy;
+    public getNextRenameTimestamp(): number {
+        return this.lastRenameTimestamp + Party.renameInterval;
     }
 }
 

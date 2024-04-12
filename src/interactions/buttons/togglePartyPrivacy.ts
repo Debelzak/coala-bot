@@ -8,7 +8,7 @@ export default {
         const thisParty = (interaction.channelId) ? PartyManager.parties.get(interaction.channelId) : undefined;
     
         // Check if party was found
-        if(!thisParty) throw new Error("Erro desconhecido");
+        if(!thisParty) return;
         
         const partyManager: PartyManager = new PartyManager(interaction.client);
     

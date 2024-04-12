@@ -1,4 +1,4 @@
-import { EmbedBuilder, Interaction } from "discord.js"
+import { EmbedBuilder, Interaction, PermissionFlagsBits, PermissionResolvable } from "discord.js"
 import os from "os"
 import Util from "../../util/utils";
 import * as commands from "../../commands"
@@ -12,7 +12,8 @@ export default {
         const version: string = (gitVersion !== "null") ? `${gitVersion}-git` : "unknown";
         let availableCommands: string = "";
         for(const [key, command] of Object.entries(commands)) {
-            availableCommands = availableCommands.concat(`**/${command.name}** : ${command.description} \n`);
+            const permissions = command.default_member_permissions;
+            availableCommands = availableCommands.concat(`**/${command.name}** : ${command.description} ${(permissions === "8") ? "**(admin apenas)**" : ""} \n`);
         }
 
         const embedMessage = new EmbedBuilder();
