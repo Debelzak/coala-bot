@@ -35,7 +35,7 @@ export default {
     
             select.addOptions(
                 new StringSelectMenuOptionBuilder()
-                    .setLabel(`@${user[1].displayName}`)
+                    .setLabel(`@${ (user[1].nickname !== null) ? user[1].nickname !== null : user[1].displayName !== null }`)
                     .setValue(user[1].id)
             );
         }

@@ -9,7 +9,7 @@ class Party
     public ownerId: string;
     public connectedUsers: number = 0;
     public readonly voiceChannel: VoiceBasedChannel;
-    public readonly controlMessage: Message;
+    public controlMessage?: Message;
     public currentParticipants: Map<string, GuildMember>;
     public bannedParticipants: Map<string, GuildMember>;
     public allowedParticipants: Map<string, GuildMember>;
@@ -17,11 +17,10 @@ class Party
 
     private lastRenameTimestamp: number = 0;
 
-    constructor(ownerId: string, voiceChannel: VoiceBasedChannel, controlMessage: Message) {
+    constructor(ownerId: string, voiceChannel: VoiceBasedChannel) {
         this.partyId = uuidv4();
         this.ownerId = ownerId;
         this.voiceChannel = voiceChannel;
-        this.controlMessage = controlMessage;
         this.currentParticipants = new Map<string, GuildMember>();
         this.bannedParticipants = new Map<string, GuildMember>();
         this.allowedParticipants = new Map<string, GuildMember>();
