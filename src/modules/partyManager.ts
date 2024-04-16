@@ -101,8 +101,9 @@ class PartyManager extends Module {
             const partyVoiceChannel = await baseChannel.clone({name: partyName});
             const party = new Party(owner.id, partyVoiceChannel)
             party.addUser(owner);
-
+            
             PartyManager.parties.set(party.voiceChannel.id, party);
+            this.logger.success(`A party [${party.voiceChannel.name}] foi criada por ${owner.user.displayName}`);
             
             // Move criador da party para a mesma.
             await owner.voice.setChannel(partyVoiceChannel);
@@ -115,7 +116,6 @@ class PartyManager extends Module {
             if(owner.voice.channelId === party.voiceChannel.id) party.controlMessage = await partyVoiceChannel.send(`Party gerenciada por ${partyVoiceChannel.client.user}`);
             if(owner.voice.channelId === party.voiceChannel.id) await this.ReloadControlMessage(party);
 
-            this.logger.success(`A party [${party.voiceChannel.name}] foi criada por ${owner.user.displayName}`);
 
             return party;
         } catch (error) {

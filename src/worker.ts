@@ -1,4 +1,4 @@
-import { ApplicationCommand, Client, GatewayIntentBits, Guild, GuildMember, GuildResolvable } from "discord.js";
+import { ApplicationCommand, Client, GatewayIntentBits, Guild, ActivityType } from "discord.js";
 import * as commands from "./commands";
 import PartyManager from "./modules/partyManager";
 import handler from "./handler";
@@ -31,12 +31,23 @@ class Worker extends Client {
             .catch((error: Error) => this.logger.error(error.message));
 
         this.on('ready', () => {
+            this.SetPresence();
             this.RegisterCommands();
             this.ManageInteractions();
             this.LoadModules();
             
             this.logger.success("Thread principal iniciada!");
             if(process.env.SILENT === "TRUE") Logger.silent = true;
+        })
+    }
+
+    private SetPresence() {
+        this.logger.success("Definindo status de atividade...");
+        this.user?.setPresence({
+            activities: [
+                { name: "/bora", type: ActivityType.Playing },
+            ],
+            status: "online"
         })
     }
 
