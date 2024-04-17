@@ -1,5 +1,11 @@
 version: "3.9"
 services:
   coala-bot:
+    image: "debelzak/coala-bot:latest"
     container_name: "coala-bot"
-    build: .
+    environment:
+      - DEVELOPMENT=${DEVELOPMENT}
+      - SILENT=${SILENT}
+      - BOT_TOKEN=${BOT_TOKEN}
+      - GUILD_ID=${GUILD_ID}
+      - MANAGED_CHANNELS=${MANAGED_CHANNELS}
