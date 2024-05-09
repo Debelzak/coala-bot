@@ -46,7 +46,7 @@ class PartyManager extends Module {
                 if(!newVoiceState.member) return;
                 const member: GuildMember = newVoiceState.member;
                 const userName: string = (newVoiceState.member.nickname !== null) ? newVoiceState.member.nickname : newVoiceState.member.displayName;
-                const partyDefaultName: string = `🚪Party de ${userName}`;
+                const partyDefaultName: string = `Party de ${userName}`;
 
                 const partyEntered: Party | undefined = (newVoiceState.channelId) ? PartyManager.parties.get(newVoiceState.channelId) : undefined;
                 const partyExited: Party | undefined = (oldVoiceState.channelId) ? PartyManager.parties.get(oldVoiceState.channelId) : undefined;
@@ -163,7 +163,7 @@ class PartyManager extends Module {
                 return;
             }
 
-            await party.rename(`🚪${newName}`);
+            await party.rename(`${newName}`);
             this.logger.success(`A party [${oldName}] foi renomeada para [${newName}]`);
 
             if(interaction) {

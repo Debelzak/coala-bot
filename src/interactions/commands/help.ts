@@ -12,7 +12,7 @@ export default {
         const version: string = (gitVersion !== "null") ? `${gitVersion}-git` : "unknown";
         let availableCommands: string = "";
         for(const [key, command] of Object.entries(commands)) {
-            const permissions = command.default_member_permissions;
+            const permissions = command.toJSON().default_member_permissions;
             availableCommands = availableCommands.concat(`**/${command.name}** : ${command.description} ${(permissions === "8") ? "**(admin apenas)**" : ""} \n`);
         }
 

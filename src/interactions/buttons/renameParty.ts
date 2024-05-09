@@ -42,7 +42,8 @@ export default {
     
         modal.addComponents(firstActionRow);
     
-        await interaction.showModal(modal);
+        await interaction.showModal(modal)
+            .catch((error: Error) => console.log(error.message))
 
         const submitted = await interaction.awaitModalSubmit({
             filter: (i) => i.user.id === interaction.user.id && i.customId === interaction.id,
