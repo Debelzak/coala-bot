@@ -3,7 +3,7 @@ import {v4 as uuidv4} from "uuid"
 
 class Party
 {
-    static readonly renameInterval = 5*60*1000;
+    static readonly renameInterval: number = 5*60*1000;
 
     public partyId: string;
     public ownerId: string;

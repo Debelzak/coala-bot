@@ -132,17 +132,17 @@ class PartyManager extends Module {
 
             party.togglePrivacity();
             party.currentParticipants.forEach((participant) => {
-                party.voiceChannel.permissionOverwrites.edit(participant, {Connect:  true});
+                party.voiceChannel.permissionOverwrites.edit(participant, {Connect:  true, ViewChannel: true});
             })
             
-            party.voiceChannel.permissionOverwrites.edit(party.voiceChannel.guild.roles.everyone, {Connect: !party.isPrivate});
+            party.voiceChannel.permissionOverwrites.edit(party.voiceChannel.guild.roles.everyone, {Connect: !party.isPrivate, ViewChannel: !party.isPrivate});
 
             this.logger.success(`A privacidade de [${party.voiceChannel.name}] foi alterada para ${(party.isPrivate) ? "privada" : "pública"}.`);
 
             if(interaction) {
                 this.ReloadControlMessage(party);
-                const replyMessage = (party.isPrivate) ? `A party agora é privada e apenas membros com permissão podem participar.`
-                                     : `A party agora é pública e qualquer membro pode participar.`
+                const replyMessage = (party.isPrivate) ? `A party agora é privada e apenas membros com permissão podem ver ou participar.`
+                                     : `A party agora é pública e qualquer membro pode ver ou participar.`
                 await interaction.reply({
                     content: replyMessage,
                     ephemeral: false,
@@ -215,7 +215,7 @@ class PartyManager extends Module {
                     if(party.currentParticipants.get(member.id) === member)
                         promises.push(this.KickMember(member, party));
 
-                    promises.push(party.voiceChannel.permissionOverwrites.edit(member, {Connect:  false}));
+                    promises.push(party.voiceChannel.permissionOverwrites.edit(member, {Connect:  false, ViewChannel: false}));
                     result.push(member);
                 }
             }
@@ -240,7 +240,7 @@ class PartyManager extends Module {
                 const member = guild.members.cache.get(memberId);
                 if(member) {
                     party.allowUserEntrance(member);
-                    promises.push(party.voiceChannel.permissionOverwrites.edit(member, {Connect:  true}));
+                    promises.push(party.voiceChannel.permissionOverwrites.edit(member, {Connect:  true, ViewChannel: true}));
                     result.push(member);
                 }
             }
