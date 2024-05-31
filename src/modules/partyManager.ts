@@ -110,7 +110,7 @@ class PartyManager extends Module {
 
             // Edita permissões da sala e define limite de usuários.
             if(owner.voice.channelId === party.voiceChannel.id) await party.voiceChannel.permissionOverwrites.edit(party.voiceChannel.guild.roles.everyone, {SendMessages:  true})
-            if(owner.voice.channelId === party.voiceChannel.id) await party.voiceChannel.setUserLimit(8);
+            if(owner.voice.channelId === party.voiceChannel.id) await party.voiceChannel.setUserLimit(16);
             
             // Cria mensagem de controle da party
             if(owner.voice.channelId === party.voiceChannel.id) party.controlMessage = await partyVoiceChannel.send(`Party gerenciada por ${partyVoiceChannel.client.user}`);
