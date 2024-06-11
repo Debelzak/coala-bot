@@ -1,4 +1,4 @@
-import { Client, GuildMember, ButtonInteraction, VoiceBasedChannel, BaseMessageOptions, EmbedBuilder, ButtonBuilder, ButtonStyle, ActionRowBuilder, ModalSubmitInteraction, User, Channel, Guild, Message } from "discord.js"
+import { Client, GuildMember, ButtonInteraction, VoiceBasedChannel, BaseMessageOptions, EmbedBuilder, ButtonBuilder, ButtonStyle, ActionRowBuilder, ModalSubmitInteraction, User, Channel, Guild, Message, PermissionFlagsBits } from "discord.js"
 import Party from "../models/party";
 import Util from "../util/utils";
 import Module from "../models/module";
@@ -98,7 +98,14 @@ class PartyManager extends Module {
 
     public async CreateParty(owner: GuildMember, partyName: string, baseChannel: VoiceBasedChannel): Promise<Party | undefined> {
         try {
-            const partyVoiceChannel = await baseChannel.clone({name: partyName});
+            const partyVoiceChannel = await baseChannel.clone({
+                name: partyName, 
+                userLimit: 16, 
+                permissionOverwrites: [
+                    {allow: "SendMessages", id: baseChannel.guild.roles.everyone.id}
+                ]
+            });
+
             const party = new Party(owner.id, partyVoiceChannel)
             party.addUser(owner);
             
@@ -106,16 +113,11 @@ class PartyManager extends Module {
             this.logger.success(`A party [${party.voiceChannel.name}] foi criada por ${owner.user.displayName}`);
             
             // Move criador da party para a mesma.
-            await owner.voice.setChannel(partyVoiceChannel);
-
-            // Edita permissões da sala e define limite de usuários.
-            if(owner.voice.channelId === party.voiceChannel.id) await party.voiceChannel.permissionOverwrites.edit(party.voiceChannel.guild.roles.everyone, {SendMessages:  true})
-            if(owner.voice.channelId === party.voiceChannel.id) await party.voiceChannel.setUserLimit(16);
+            owner.voice.setChannel(partyVoiceChannel)
             
             // Cria mensagem de controle da party
-            if(owner.voice.channelId === party.voiceChannel.id) party.controlMessage = await partyVoiceChannel.send(`Party gerenciada por ${partyVoiceChannel.client.user}`);
-            if(owner.voice.channelId === party.voiceChannel.id) await this.ReloadControlMessage(party);
-
+            party.controlMessage = await partyVoiceChannel.send(`Party gerenciada por ${partyVoiceChannel.client.user}`);
+            this.ReloadControlMessage(party);
 
             return party;
         } catch (error) {
@@ -202,7 +204,8 @@ class PartyManager extends Module {
         let promises: Promise<any>[] = [];
         let result: GuildMember[] = [];
 
-        const guild: Guild | undefined = this.client.guilds.cache.get(party.voiceChannel.guildId);
+        const guild = party.voiceChannel.guild;
+        
         if(guild) {
             for(const memberId of memberIds) {
                 if(memberId === party.ownerId) continue;
@@ -234,7 +237,8 @@ class PartyManager extends Module {
         let promises: Promise<any>[] = [];
         let result: GuildMember[] = [];
 
-        const guild: Guild | undefined = this.client.guilds.cache.get(party.voiceChannel.guildId);
+        const guild = party.voiceChannel.guild;
+
         if(guild) {
             for(const memberId of memberIds) {
                 const member = guild.members.cache.get(memberId);
