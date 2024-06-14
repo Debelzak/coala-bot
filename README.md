@@ -9,13 +9,18 @@
 
 ## ⁉️ Funções
 
+### Módulo Base
+Módulo com comandos mais básicos.
+
+#### Comandos
+`/help` : Informações úteis sobre o bot.</br>
+`/bora` : `!piada interna` Chama um bora</br>
+
 ### Gerenciador de Party
 O bot implementa o conceito de Party inspirado nas Parties do PS4/PS5: Ao invés de salas estáticas de canais de voz, as salas são criadas dinamicamente de acordo com a necessidade do(s) usuário(s), dando ao seu dono total controle sobre aquela sala em específico, deixando de existir quando se encontra vazia, dando possibilidades de privacidade aos membros do servidor e mantendo o servidor sempre limpo.
 
-### Comandos disponíveis
-`/help` : Informações úteis sobre o bot.</br>
-`/bora` : `!piada interna` Chama um bora</br>
-`/setup` : Configurações do bot, permite ativar e desativar funções.</br>
+#### Comandos
+`/partysetup` : Configurações do gerenciador de salas. Permite adicionar, remover e modificar propriedades das salas gerenciada pelo bot.</br>
 
 ## 📝 Como usar
 
