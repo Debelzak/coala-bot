@@ -1,17 +1,18 @@
-import { ActionRowBuilder, UserSelectMenuBuilder, Interaction, ComponentType, GuildMember } from "discord.js"
-import PartyManager from "../../modules/partyManager";
+import { ActionRowBuilder, UserSelectMenuBuilder, Interaction as DiscordInteraction, ComponentType, GuildMember } from "discord.js"
+import PartyManager from "../partyManager";
+import { Interaction, InteractionType } from "../../../models/Interaction";
 
-export default {
+export default new Interaction({
+    type: InteractionType.BUTTON,
     customId: "btn_allowPartyMembers",
-    async run(interaction: Interaction) {
+    async run(interaction: DiscordInteraction) {
         if(!interaction.isButton()) return;
         const thisParty = (interaction.channelId) ? PartyManager.parties.get(interaction.channelId) : undefined;
     
         // Check if party was found
         if(!thisParty) return;
     
-        const partyManager: PartyManager = new PartyManager(interaction.client);
-        const isPartyOwner = await partyManager.CheckOwnership(interaction.user, thisParty, interaction);
+        const isPartyOwner = await PartyManager.CheckOwnership(interaction.user, thisParty, interaction);
         if(!isPartyOwner) {
             return;
         }
@@ -50,13 +51,13 @@ export default {
                 }
                 
                 await newInteraction.deferReply();
-                const allowedMembers: GuildMember[] = await partyManager.AllowMembers(membersToAllow, thisParty);
+                const allowedMembers: GuildMember[] = await PartyManager.AllowMembers(membersToAllow, thisParty);
                 let reply: string = `Os seguintes membros agora podem participar desta party:`;
                 for(const member of allowedMembers) {
                     reply = reply.concat(` ${member}`);
                 }
                 reply = reply.concat(".");
-                partyManager.ReloadControlMessage(thisParty);
+                PartyManager.ReloadControlMessage(thisParty);
                 newInteraction.editReply(reply);
             })
         });
@@ -65,4 +66,4 @@ export default {
             if(collected.size === 0 && reason === "time") interaction.deleteReply();
         })
     }
-}
+})

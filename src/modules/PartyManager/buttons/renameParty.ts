@@ -1,17 +1,18 @@
-import { TextInputBuilder, TextInputStyle, ActionRowBuilder, ModalBuilder, Interaction } from "discord.js"
-import PartyManager from "../../modules/partyManager";
+import { TextInputBuilder, TextInputStyle, ActionRowBuilder, ModalBuilder, Interaction as DiscordInteraction } from "discord.js"
+import PartyManager from "../partyManager";
+import { Interaction, InteractionType } from "../../../models/Interaction";
 
-export default {
+export default new Interaction({
+    type: InteractionType.BUTTON,
     customId: "btn_renameParty",
-    async run(interaction: Interaction) {
+    async run(interaction: DiscordInteraction) {
         if(!interaction.isButton()) return;
         const thisParty = (interaction.channelId) ? PartyManager.parties.get(interaction.channelId) : undefined;
     
         // Check if party was found
         if(!thisParty) return;
 
-        const partyManager: PartyManager = new PartyManager(interaction.client);
-        const isPartyOwner = await partyManager.CheckOwnership(interaction.user, thisParty, interaction);
+        const isPartyOwner = await PartyManager.CheckOwnership(interaction.user, thisParty, interaction);
         if(!isPartyOwner) {
             return;
         }
@@ -54,7 +55,7 @@ export default {
 
         if(submitted) {
             const newName = submitted.fields.getTextInputValue("new_name");
-            await partyManager.RenameParty(interaction.user, thisParty, newName, submitted);
+            await PartyManager.RenameParty(interaction.user, thisParty, newName, submitted);
         }
     }
-}
+})

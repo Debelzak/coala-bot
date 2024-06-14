@@ -1,61 +1,101 @@
-import { Client, GuildMember, ButtonInteraction, VoiceBasedChannel, BaseMessageOptions, EmbedBuilder, ButtonBuilder, ButtonStyle, ActionRowBuilder, ModalSubmitInteraction, User, Channel, Guild, Message, PermissionFlagsBits } from "discord.js"
-import Party from "../models/party";
-import Util from "../util/utils";
-import Module from "../models/module";
+import { 
+    Client, GuildMember, ButtonInteraction,
+    BaseMessageOptions, EmbedBuilder, ButtonBuilder, ButtonStyle,
+    ActionRowBuilder, ModalSubmitInteraction, User, Channel,
+    Guild 
+} from "discord.js"
+import Party from "./models/Party";
+import Util from "../../util/utils";
+import Module from "../../models/Module";
+import { PartyManagerChannel } from "./models/PartyManagerChannel";
+import * as commands from "./commands"
+import * as buttons from "./buttons"
 
 class PartyManager extends Module {
-    public static readonly parties: Map<string, Party> = new Map<string, Party>();
-    public static readonly managedChannels: Map<string, VoiceBasedChannel> = new Map<string, VoiceBasedChannel>();
+    public readonly parties: Map<string, Party> = new Map<string, Party>();
+    public readonly managerChannels: Map<string, PartyManagerChannel> = new Map<string, PartyManagerChannel>();
 
-    constructor(client: Client) {
-        super(client);
+    constructor() {
+        super();
     }
 
-    init(): void {
-        super.init();
+    init(client: Client): void {
+        super.init(client);
+        this.registerInteractions(commands);
+        this.registerInteractions(buttons);
+        this.buildManagerCache();
+        this.buildPartyCache();
         this.initPartyManagement();
-    }
-
-    private buildChannelCache() {
-        if(process.env.MANAGED_CHANNELS) {
-            const channelIdList: string[] = process.env.MANAGED_CHANNELS.split(" ");
-            for(const channelId of channelIdList) {
-                const channel: Channel | undefined = this.client.channels.cache.get(channelId);
-                if(channel?.isVoiceBased()) { 
-                    PartyManager.managedChannels.set(channel.id, channel);
-                    this.logger.success(`Gerenciando canal de voz [${channel.name}] no servidor [${channel.guild.name}]`);
-                } else {
-                    this.logger.warning(`Canal de voz [${channelId}] não encontrado. Ignorando.`)
-                    continue;
-                }
-            }
-        }
     }
 
     private buildPartyCache() {
         // TODO: Necessário para manter registro de parties antigas no caso do programa ser reiniciado ou crashar.
     }
 
-    private initPartyManagement(): void {
-        this.buildChannelCache();
-        this.buildPartyCache();
+    private async buildManagerCache(): Promise<void> {
+        const managers = await PartyManagerChannel.DB_GetAll();
+        managers.forEach((manager) => {
+            this.addManagerChannel(manager);
+        })
+    }
 
-        this.client.on('voiceStateUpdate', async (oldVoiceState, newVoiceState) => {
+    private addManagerChannel(manager: PartyManagerChannel): boolean {
+        const channel: Channel | undefined = this.client?.channels.cache.get(manager.channelId);
+        if(channel?.isVoiceBased()) {
+            this.managerChannels.set(channel.id, manager);
+            this.logger.success(`Gerenciando canal de voz [${channel.name}] no servidor [${channel.guild.name}]`);
+            return true;
+        } else {
+            this.logger.warning(`Canal de voz [${manager.channelId}] não encontrado. Ignorando e excluindo entrada...`);
+            manager.DB_Delete();
+        }
+
+        return false;
+    }
+
+    public newManagerChannel(channelId: string) {
+        const channel = this.client?.channels.cache.get(channelId);
+        if(!channel?.isVoiceBased()) return;
+
+        const manager = new PartyManagerChannel(channelId, channel.guild.id, channel.guild.name);
+        if(this.addManagerChannel(manager)) {
+            manager.DB_Save();
+        }
+    }
+
+    public removeManagerChannel(channelId: string) {
+        const channel: Channel | undefined = this.client?.channels.cache.get(channelId);
+        const manager = this.managerChannels.get(channelId)
+        if(manager) {
+            if(channel && channel.isVoiceBased()) {
+                this.logger.success(`Parando de gerenciar o canal [${channel.name}] no servidor [${channel.guild.name}]`);
+            }
+            
+            this.managerChannels.delete(channelId);
+            manager.DB_Delete();
+        }
+    }
+
+    private initPartyManagement(): void {
+        this.client?.on('voiceStateUpdate', async (oldVoiceState, newVoiceState) => {
+            const guildName = (newVoiceState) ? newVoiceState.guild.name : oldVoiceState.guild.name;
+
             // Se um membro se conectou/desconectou a um canal.
             if (newVoiceState.channel !== oldVoiceState.channel) {
                 if(!newVoiceState.member) return;
                 const member: GuildMember = newVoiceState.member;
                 const userName: string = (newVoiceState.member.nickname !== null) ? newVoiceState.member.nickname : newVoiceState.member.displayName;
-                const partyDefaultName: string = `Party de ${userName}`;
 
-                const partyEntered: Party | undefined = (newVoiceState.channelId) ? PartyManager.parties.get(newVoiceState.channelId) : undefined;
-                const partyExited: Party | undefined = (oldVoiceState.channelId) ? PartyManager.parties.get(oldVoiceState.channelId) : undefined;
+                const partyManagerEntered: PartyManagerChannel | undefined = (newVoiceState.channelId) ? this.managerChannels.get(newVoiceState.channelId) : undefined;
+                const partyEntered: Party | undefined = (newVoiceState.channelId) ? this.parties.get(newVoiceState.channelId) : undefined;
+                const partyExited: Party | undefined = (oldVoiceState.channelId) ? this.parties.get(oldVoiceState.channelId) : undefined;
 
                 if(!member) return;
 
-                if(newVoiceState.channel && PartyManager.managedChannels.get(newVoiceState.channel.id)) { // Se o canal é gerenciado pelo bot.
+                if(partyManagerEntered) { // Se entrou em canal gerenciado pelo bot (Canal de Criar Party)
                     try {
-                        const partyCreated = await this.CreateParty(member, partyDefaultName, newVoiceState.channel);
+                        await this.CreateParty(partyManagerEntered, member);
+                        partyManagerEntered.partyCount++;
                     } catch(error) {
                         this.logger.error(Util.getErrorMessage(error));
                     }
@@ -64,7 +104,7 @@ class PartyManager extends Module {
                 if(partyEntered) { // Se conectou a alguma party
                     try {
                         partyEntered.addUser(member);
-                        this.logger.success(`${userName} entrou na party [${partyEntered.voiceChannel.name}]. ${partyEntered.connectedUsers} usuários restantes.`);
+                        this.logger.success(`[${guildName}] ${userName} entrou na party [${partyEntered.voiceChannel.name}]. ${partyEntered.connectedUsers} usuários restantes.`);
                     } catch(error) {
                         this.logger.error(Util.getErrorMessage(error));
                     }
@@ -73,7 +113,7 @@ class PartyManager extends Module {
                 if(partyExited) { // Se desconectou de alguma party
                     try {                        
                         partyExited.removeUser(member);
-                        this.logger.success(`${userName} saiu da party [${partyExited.voiceChannel.name}]. ${partyExited.connectedUsers} usuários restantes.`);
+                        this.logger.success(`[${guildName}] ${userName} saiu da party [${partyExited.voiceChannel.name}]. ${partyExited.connectedUsers} usuários restantes.`);
 
                         // Transfere a liderança ao sair
                         if(partyExited.currentParticipants.size > 0 && member.user.id === partyExited.ownerId) {
@@ -82,11 +122,12 @@ class PartyManager extends Module {
                             this.ReloadControlMessage(partyExited);
                         }
 
-                        // Remove party do cache se estiver vazia.
+                        // Delete party se estiver vazia.
                         if(partyExited.connectedUsers <= 0) {
-                            this.logger.success(`Nenhum membro restante em [${partyExited.voiceChannel.name}], excluindo...`);
+                            this.logger.success(`[${guildName}] Nenhum membro restante em [${partyExited.voiceChannel.name}], excluindo...`);
                             await partyExited.voiceChannel.delete();
-                            PartyManager.parties.delete(partyExited.voiceChannel.id);
+                            this.parties.delete(partyExited.voiceChannel.id);
+                            partyExited.manager.partyCount--;
                         }
                     } catch(error) {
                         this.logger.error(Util.getErrorMessage(error));
@@ -96,21 +137,24 @@ class PartyManager extends Module {
         })
     }
 
-    public async CreateParty(owner: GuildMember, partyName: string, baseChannel: VoiceBasedChannel): Promise<Party | undefined> {
+    private async CreateParty(manager: PartyManagerChannel, owner: GuildMember, partyName?: string): Promise<void> {
         try {
-            const partyVoiceChannel = await baseChannel.clone({
-                name: partyName, 
-                userLimit: 16, 
+            const channel: Channel | undefined = this.client?.channels.cache.get(manager.channelId);
+            if(!channel?.isVoiceBased()) return;
+
+            const partyVoiceChannel = await channel.clone({
+                name: (partyName) ? partyName : manager.GetDefaultName(owner), 
+                userLimit: manager.maxUsers, 
                 permissionOverwrites: [
-                    {allow: "SendMessages", id: baseChannel.guild.roles.everyone.id}
+                    {allow: "SendMessages", id: channel.guild.roles.everyone.id}
                 ]
             });
 
-            const party = new Party(owner.id, partyVoiceChannel)
+            const party = new Party(owner.id, partyVoiceChannel, manager);
             party.addUser(owner);
             
-            PartyManager.parties.set(party.voiceChannel.id, party);
-            this.logger.success(`A party [${party.voiceChannel.name}] foi criada por ${owner.user.displayName}`);
+            this.parties.set(party.voiceChannel.id, party);
+            this.logger.success(`[${party.voiceChannel.guild.name}] A party [${party.voiceChannel.name}] foi criada por ${owner.user.displayName}`);
             
             // Move criador da party para a mesma.
             owner.voice.setChannel(partyVoiceChannel)
@@ -118,10 +162,8 @@ class PartyManager extends Module {
             // Cria mensagem de controle da party
             party.controlMessage = await partyVoiceChannel.send(`Party gerenciada por ${partyVoiceChannel.client.user}`);
             this.ReloadControlMessage(party);
-
-            return party;
         } catch (error) {
-            this.logger.error(`Falha ao criar a party ${partyName} - ${Util.getErrorMessage(error)}`);
+            this.logger.error(`Falha ao criar a party ${manager.GetDefaultName(owner)} - ${Util.getErrorMessage(error)}`);
         }
     }
 
@@ -139,7 +181,7 @@ class PartyManager extends Module {
             
             party.voiceChannel.permissionOverwrites.edit(party.voiceChannel.guild.roles.everyone, {Connect: !party.isPrivate, ViewChannel: !party.isPrivate});
 
-            this.logger.success(`A privacidade de [${party.voiceChannel.name}] foi alterada para ${(party.isPrivate) ? "privada" : "pública"}.`);
+            this.logger.success(`[${party.voiceChannel.guild.name}] A privacidade de [${party.voiceChannel.name}] foi alterada para ${(party.isPrivate) ? "privada" : "pública"}.`);
 
             if(interaction) {
                 this.ReloadControlMessage(party);
@@ -153,7 +195,7 @@ class PartyManager extends Module {
             
 
         } catch(error) {
-            this.logger.error(`Falha ao tentar trocar a privacidade de [${party.voiceChannel.name}] - ${Util.getErrorMessage(error)}`);
+            this.logger.error(`[${party.voiceChannel.guild.name}] Falha ao tentar trocar a privacidade de [${party.voiceChannel.name}] - ${Util.getErrorMessage(error)}`);
         }
     }
 
@@ -166,7 +208,7 @@ class PartyManager extends Module {
             }
 
             await party.rename(`${newName}`);
-            this.logger.success(`A party [${oldName}] foi renomeada para [${newName}]`);
+            this.logger.success(`[${party.voiceChannel.guild.name}] A party [${oldName}] foi renomeada para [${newName}]`);
 
             if(interaction) {
                 this.ReloadControlMessage(party);
@@ -177,23 +219,23 @@ class PartyManager extends Module {
             }
 
         } catch(error) {
-            this.logger.error(`Falha ao tentar renomear a party [${party.voiceChannel.name}] - ${Util.getErrorMessage(error)}`);
+            this.logger.error(`[${party.voiceChannel.guild.name}] Falha ao tentar renomear a party [${party.voiceChannel.name}] - ${Util.getErrorMessage(error)}`);
         }
     }
 
     public TransferOwnership(newLeaderId: string, party: Party): boolean {
-        const guild: Guild | undefined = this.client.guilds.cache.get(party.voiceChannel.guildId);
+        const guild: Guild | undefined = this.client?.guilds.cache.get(party.voiceChannel.guildId);
         const member = guild?.members.cache.get(newLeaderId);
 
         if(member) {
             try {
                 if(party.changeOwner(member)) {
-                    this.logger.success(`A liderança da party [${party.voiceChannel.name}] foi passada para [${member.displayName}].`);
+                    this.logger.success(`[${party.voiceChannel.guild.name}] A liderança da party [${party.voiceChannel.name}] foi passada para [${member.displayName}].`);
                     party.controlMessage?.reply(`A liderança da party agora é de ${member}`);
                     return true;
                 }
             } catch (error) {
-                this.logger.warning(`Falha ao transferir a liderança da party [${party.voiceChannel.name}] para [${member.displayName}]. - ${Util.getErrorMessage(error)}`);
+                this.logger.warning(`[${party.voiceChannel.guild.name}] Falha ao transferir a liderança da party [${party.voiceChannel.name}] para [${member.displayName}]. - ${Util.getErrorMessage(error)}`);
             }
         }
 
@@ -227,7 +269,7 @@ class PartyManager extends Module {
         try {
             await Promise.all(promises);
         } catch (error) {
-            this.logger.error(`Falha ao banir membros da party [${party.voiceChannel.name}] - ${Util.getErrorMessage(error)}`);
+            this.logger.error(`[${party.voiceChannel.guild.name}] Falha ao banir membros da party [${party.voiceChannel.name}] - ${Util.getErrorMessage(error)}`);
         }
 
         return result;
@@ -253,7 +295,7 @@ class PartyManager extends Module {
         try {
             await Promise.all(promises);
         } catch (error) {
-            this.logger.error(`Falha ao permitir membros na party [${party.voiceChannel.name}] - ${Util.getErrorMessage(error)}`);
+            this.logger.error(`[${party.voiceChannel.guild.name}] Falha ao permitir membros na party [${party.voiceChannel.name}] - ${Util.getErrorMessage(error)}`);
         }
 
         return result;
@@ -265,7 +307,7 @@ class PartyManager extends Module {
             await member.voice.setChannel(null);
             this.logger.success(`${member.displayName} foi expulso de [${party.voiceChannel.name}]`);
         } catch(error) {
-            this.logger.error(`Falha ao remover membro do canal - ${Util.getErrorMessage(error)}`);
+            this.logger.error(`[${party.voiceChannel.guild.name}] Falha ao remover membro do canal - ${Util.getErrorMessage(error)}`);
         }
     }
 
@@ -285,9 +327,6 @@ class PartyManager extends Module {
     }
 
     private controlMessage(party: Party): BaseMessageOptions {
-        let embeds = [];
-        let components =  [];
-
         let bannedMembers: string = (party.bannedParticipants.size > 0) ? "" : "Nenhum"
         let allowedMembers: string = (party.allowedParticipants.size > 0) ? "" : "Nenhum"
         for(const member of party.bannedParticipants) {
@@ -302,7 +341,7 @@ class PartyManager extends Module {
             .setColor(0x0099FF)
             .addFields({ name: 'Canal', value: `${party.voiceChannel}`, inline: false})
             .addFields({ name: 'Privacidade', value: `${(party.isPrivate) ? `Privada` : `Pública`}`, inline: false})
-            .addFields({ name: 'Líder', value: `${this.client.users.cache.get(party.ownerId)}`, inline: false})
+            .addFields({ name: 'Líder', value: `${this.client?.users.cache.get(party.ownerId)}`, inline: false})
             .addFields({ name: 'Membros Banidos', value: `${bannedMembers}`, inline: true})
             .addFields({ name: 'Membros Permitidos', value: `${allowedMembers}`, inline: true})
 
@@ -337,7 +376,7 @@ class PartyManager extends Module {
             .setStyle(ButtonStyle.Success)
             .setEmoji("✅");
 
-        const firstRow = new ActionRowBuilder();
+        const firstRow: ActionRowBuilder = new ActionRowBuilder();
         const secondRow = new ActionRowBuilder();
         const thirdRow = new ActionRowBuilder();
 
@@ -351,15 +390,13 @@ class PartyManager extends Module {
         // Third row
         thirdRow.addComponents(allowMember);
 
-        embeds.push(embedMessage);
-        components.push(firstRow,secondRow);
-        if(party.isPrivate || party.bannedParticipants.size > 0) components.push(thirdRow);
+        const message: any = {
+            embeds: [embedMessage],
+            components: [firstRow, secondRow],
+        };
 
-        const message : any = {
-            embeds: embeds,
-            components: components,
-        }
-
+        if(party.isPrivate || party.bannedParticipants.size > 0) message.components?.push(thirdRow);
+            
         return message;
     }
 
@@ -368,10 +405,10 @@ class PartyManager extends Module {
         try {
             await party.controlMessage?.edit(this.controlMessage(party));
         } catch(error) {
-            this.logger.error(`Falha ao criar mensagem de controle para a party ${party.voiceChannel.name} - ${Util.getErrorMessage(error)}`);
+            this.logger.error(`[${party.voiceChannel.guild.name}] Falha ao criar mensagem de controle para a party ${party.voiceChannel.name} - ${Util.getErrorMessage(error)}`);
         }
     }
 
 }
 
-export default PartyManager;
+export default new PartyManager();

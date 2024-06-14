@@ -1,17 +1,18 @@
-import { ActionRowBuilder, StringSelectMenuBuilder, StringSelectMenuOptionBuilder, Interaction, ComponentType } from "discord.js"
-import PartyManager from "../../modules/partyManager";
+import { ActionRowBuilder, StringSelectMenuBuilder, StringSelectMenuOptionBuilder, Interaction as DiscordInteraction, ComponentType } from "discord.js"
+import PartyManager from "../partyManager";
+import { Interaction, InteractionType } from "../../../models/Interaction";
 
-export default {
+export default new Interaction({
+    type: InteractionType.BUTTON,
     customId: "btn_transferPartyOwnership",
-    async run(interaction: Interaction) {
+    async run(interaction: DiscordInteraction) {
         if(!interaction.isButton()) return;
         const thisParty = (interaction.channelId) ? PartyManager.parties.get(interaction.channelId) : undefined;
     
         // Check if party was found
         if(!thisParty) return;
     
-        const partyManager: PartyManager = new PartyManager(interaction.client);
-        const isPartyOwner = await partyManager.CheckOwnership(interaction.user, thisParty, interaction);
+        const isPartyOwner = await PartyManager.CheckOwnership(interaction.user, thisParty, interaction);
         if(!isPartyOwner) {
             return;
         }
@@ -60,13 +61,13 @@ export default {
             interaction.deleteReply()
                 .then(async() => {
                     const newLeaderId = newInteraction.values[0];
-                    const newLeader = partyManager.TransferOwnership(newLeaderId, thisParty);
+                    const newLeader = PartyManager.TransferOwnership(newLeaderId, thisParty);
                     if(!newLeader) {
                         newInteraction.reply({content: `Não foi possível alterar o líder da party, o membro não está disponível.`, ephemeral: true});
                         return;
                     }
                     
-                    partyManager.ReloadControlMessage(thisParty);
+                    PartyManager.ReloadControlMessage(thisParty);
                     newInteraction.reply({content: `Liderança da party transferida.`, ephemeral: true})
                 })
         });
@@ -75,4 +76,4 @@ export default {
             if(collected.size === 0 && reason === "time") interaction.deleteReply();
         })
     }
-}
+})

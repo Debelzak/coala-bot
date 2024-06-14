@@ -1,11 +1,11 @@
 import { VoiceBasedChannel, GuildMember, Message } from "discord.js";
 import {v4 as uuidv4} from "uuid"
+import { PartyManagerChannel } from "./PartyManagerChannel";
 
-class Party
-{
+export default class Party {
     static readonly renameInterval: number = 5*60*1000;
 
-    public partyId: string;
+    public readonly partyId: string;
     public ownerId: string;
     public connectedUsers: number = 0;
     public readonly voiceChannel: VoiceBasedChannel;
@@ -14,10 +14,12 @@ class Party
     public bannedParticipants: Map<string, GuildMember>;
     public allowedParticipants: Map<string, GuildMember>;
     public isPrivate: boolean = false;
+    public manager: PartyManagerChannel;
 
     private lastRenameTimestamp: number = 0;
 
-    constructor(ownerId: string, voiceChannel: VoiceBasedChannel) {
+    constructor(ownerId: string, voiceChannel: VoiceBasedChannel, manager: PartyManagerChannel) {
+        this.manager = manager;
         this.partyId = uuidv4();
         this.ownerId = ownerId;
         this.voiceChannel = voiceChannel;
@@ -94,5 +96,3 @@ class Party
         return this.lastRenameTimestamp + Party.renameInterval;
     }
 }
-
-export default Party;

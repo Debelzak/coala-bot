@@ -8,7 +8,7 @@ class Util {
         return message;
     }
 
-    public static async getCommitHash(): Promise<string>
+    public static getCommitHash(): Promise<string>
     {
         return new Promise((resolve, reject) => {
             const repoDir = './';

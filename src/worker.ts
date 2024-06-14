@@ -1,100 +1,118 @@
-import { ApplicationCommand, Client, GatewayIntentBits, Guild, ActivityType } from "discord.js";
-import * as commands from "./commands";
-import PartyManager from "./modules/partyManager";
-import handler from "./handler";
+import { Client, GatewayIntentBits, ActivityType, ActivitiesOptions, Guild } from "discord.js";
 import Logger from "./logger";
-import Util from "./util/utils";
+import Module from "./models/Module";
+
+// Modules
+import CoalaBase from "./modules/CoalaBase/coalaBase";
+import PartyManager from "./modules/PartyManager/partyManager";
+
+const version = require('../package.json').version;
 
 class Worker extends Client {
-    private developmentMode: boolean = false;
-    private exclusiveGuildId: string | undefined;
+    public loadedModules: Module[] = [];
+    private botToken: string | undefined;
+    public developmentMode: boolean = false;
+    public exclusiveGuildId: string | undefined;
     private logger: Logger;
 
-    constructor(token: string | undefined, guildId?: string)
+    constructor()
     {
         const options = {
             intents: [
                 GatewayIntentBits.Guilds,
                 GatewayIntentBits.GuildMessages,
-                GatewayIntentBits.GuildVoiceStates
+                GatewayIntentBits.GuildVoiceStates,
+                GatewayIntentBits.GuildPresences
             ]
         }
         super(options);
-
         this.logger = new Logger(this.constructor.name);
+    }
 
-        if(guildId) this.exclusiveGuildId = guildId;
+    public start(token: string, guildId?: string) {
+        this.botToken = token;
+        this.exclusiveGuildId = guildId;
+
         if(process.env.DEVELOPMENT === "TRUE") this.developmentMode = true;
 
-        this.login(token)
+        this.login(this.botToken)
             .then(() => this.logger.success(`Conectado como ${this.user?.tag}!`))
             .catch((error: Error) => this.logger.error(error.message));
 
         this.on('ready', () => {
-            this.SetPresence();
-            this.RegisterCommands();
-            this.ManageInteractions();
-            this.LoadModules();
-            
-            this.logger.success("Thread principal iniciada!");
-            if(process.env.SILENT === "TRUE") Logger.silent = true;
+            this.ClearCommands().then(() => {
+                this.updatePresence();
+                
+                this.LoadModule(CoalaBase);
+                this.LoadModule(PartyManager);
+                
+                this.logger.success("Thread principal iniciada!");
+                if(process.env.SILENT === "TRUE") Logger.silent = true;
+            })
         })
     }
 
-    private SetPresence() {
+    private updatePresence() {
+        let presenceInterval: NodeJS.Timeout | null = null;
+        let activityIndex = 0;
+
+        const activities: ActivitiesOptions[] = [
+            { name: `/bora`, type: ActivityType.Playing },
+            { name: `v${version}`, type: ActivityType.Playing },
+        ];
+
         this.logger.success("Definindo status de atividade...");
+        const activity = activities[activityIndex];
         this.user?.setPresence({
-            activities: [
-                { name: "/bora", type: ActivityType.Playing },
-            ],
+            activities: [activity],
             status: "online"
         })
+
+        activityIndex = (activityIndex + 1) % activities.length; // Próxima atividade
+
+        if (!presenceInterval) {
+            presenceInterval = setInterval(() => {
+                const nextActivity = activities[activityIndex];
+                this.user?.setPresence({
+                    activities: [nextActivity],
+                    status: "online"
+                })
+
+                activityIndex = (activityIndex + 1) % activities.length; // Próxima atividade
+            }, 30_000); // Atualiza a cada 30 segundos
+        }
     }
 
-    private LoadModules() {
-        new PartyManager(this).init();
+    private LoadModule(module: Module) {
+        module.init(this);
+        this.loadedModules.push(module);
     }
 
-    private async CleanGlobalCommands(): Promise<void> {
-        // Clean commands
-        const currentGlobalCommands = await this.application?.commands.fetch();
-        currentGlobalCommands?.map(async (command) => {
-            await command.delete();
-        })
-    }
-
-    private async RegisterCommands(): Promise<void>
-    {
+    private async ClearCommands(): Promise<void> {
         let guild: Guild | undefined;
         if(this.exclusiveGuildId) {
             guild = this.guilds.cache.get(this.exclusiveGuildId);
         }
 
-        const promises: (Promise<ApplicationCommand<{}>> | undefined)[] = [];
+        const currentGlobalCommands = await this.application?.commands.fetch();
 
-        for(const [key, command] of Object.entries(commands)) {
-            try {
-                if(this.developmentMode && guild) {
-                    this.logger.success(`Registrando o comando /${command.name} para o servidor [${guild.name}]`);
-                    promises.push(guild.commands?.create(command));
-                } else {
-                    this.logger.success(`Registrando o comando global /${command.name}`);
-                    promises.push(this.application?.commands.create(command));
-                }
-
-            } catch (error) {
-                this.logger.error(Util.getErrorMessage(error));
-                promises.push(Promise.reject(error));
+        // Clean global commands
+        if(currentGlobalCommands) {
+            for(const [key,command] of currentGlobalCommands) {
+                await command.delete();
+                this.logger.warning(`Deletando comando global: /${command.name}`);
             }
         }
-        
-        await Promise.all(promises);
-    }
 
-    private async ManageInteractions()
-    {
-        this.on('interactionCreate', handler.handleInteraction);
+        // Clean normal commands
+        const currentCommands = await guild?.commands.fetch();
+        if(currentCommands) {
+            for(const [key, command] of currentCommands) {
+                await command.delete();
+                this.logger.warning(`Deletando comando de guild: /${command.name}`);
+            }
+        }
     }
 }
 
-export default Worker;
+export default new Worker();
