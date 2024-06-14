@@ -3,7 +3,7 @@ import { Interaction, InteractionType } from "../../../models/Interaction";
 
 const builder = new SlashCommandBuilder()
     .setName("partysetup")
-    .setDescription("Adiciona novo canal gerenciador de party.")
+    .setDescription("⚙️ Configurações do gerenciador de party.")
     .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
 
 export default new Interaction({

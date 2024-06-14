@@ -15,7 +15,12 @@ export default new Interaction({
 
         const embed = new EmbedBuilder()
             .setTitle("Definir nome padrão de party")
-            .setDescription("Defina o nome que cada party terá por padrão ao ser criada.")
+            .setDescription("Defina o nome que cada party terá por padrão ao ser criada. Você pode utilizar os placeholders abaixo para substituição:")
+            .setFields([
+                {name: "%USER%", value: "Nome de exibição do usuário no servidor."},
+                {name: "%INC%", value: "Número crescente. Aumenta em 1 para cada sala criada pelo gerenciador."},
+                {name: "%GAME%", value: "O jogo que está sendo jogando pelo usuário ao criar a sala."},
+            ])
 
 		const select = new StringSelectMenuBuilder()
 			.setCustomId(interaction.id)

@@ -6,7 +6,7 @@ import Worker from "../../../worker"
 
 const builder = new SlashCommandBuilder()
     .setName("help")
-    .setDescription("Informações sobre o bot")
+    .setDescription("❓ Informações sobre o bot")
 
 
 export default new Interaction({
@@ -24,7 +24,7 @@ export default new Interaction({
                 if(interaction.type !== InteractionType.COMMAND || !interaction.commandBuilder) continue;
                 const command = interaction.commandBuilder;
                 const permissions = command.toJSON().default_member_permissions;
-                availableCommands = availableCommands.concat(`**/${command.name}** : ${command.description} ${(permissions === "8") ? "**(admin)**" : ""} \n`);
+                availableCommands = availableCommands.concat(`**/${command.name}** : ${command.description} ${(permissions === "8") ? "**[admin]**" : ""} \n`);
             }
         }
 

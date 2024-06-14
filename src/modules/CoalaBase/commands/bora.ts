@@ -3,7 +3,7 @@ import { Interaction, InteractionType } from "../../../models/Interaction";
 
 const builder = new SlashCommandBuilder()
     .setName("bora")
-    .setDescription("Chama um bora")
+    .setDescription("🅱️ Chama um bora")
     .addUserOption(
         new SlashCommandUserOption()
             .setName("membro")
