@@ -58,7 +58,6 @@ class Worker extends Client {
 
         const activities: ActivitiesOptions[] = [
             { name: `/bora`, type: ActivityType.Playing },
-            { name: `v${version}`, type: ActivityType.Playing },
         ];
 
         this.logger.success("Definindo status de atividade...");
