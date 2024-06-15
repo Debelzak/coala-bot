@@ -14,8 +14,8 @@ export default new Interaction({
         })
 
         const embed = new EmbedBuilder()
-            .setTitle("Definir limite de usuários padrão de party")
-            .setDescription("Defina o limite de usuários conectados que a party terá por padrão ao ser criada.")
+            .setTitle("Parar de gerenciar canal")
+            .setDescription("Defina canal que irá parar agir como gerenciador de parties.")
 
 		const select = new StringSelectMenuBuilder()
 			.setCustomId(interaction.id)
