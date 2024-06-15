@@ -34,16 +34,18 @@ class PartyManager extends Module {
 
     private async buildManagerCache(): Promise<void> {
         const managers = await PartyManagerChannel.DB_GetAll();
-        managers.forEach((manager) => {
-            this.addManagerChannel(manager);
-        })
+        PartyManagerChannel.DB_GetAll().then((managers) => {
+            for(const [key, manager] of managers) {
+                this.addManagerChannel(manager);
+            }
+        });
     }
 
     private addManagerChannel(manager: PartyManagerChannel): boolean {
         const channel: Channel | undefined = this.client?.channels.cache.get(manager.channelId);
         if(channel?.isVoiceBased()) {
             this.managerChannels.set(channel.id, manager);
-            this.logger.success(`Gerenciando canal de voz [${channel.name}] no servidor [${channel.guild.name}]`);
+            this.logger.success(`[${channel.guild.name}] Gerenciando canal de voz [${channel.name}].`);
             return true;
         } else {
             this.logger.warning(`Canal de voz [${manager.channelId}] não encontrado. Ignorando e excluindo entrada...`);
@@ -68,7 +70,7 @@ class PartyManager extends Module {
         const manager = this.managerChannels.get(channelId)
         if(manager) {
             if(channel && channel.isVoiceBased()) {
-                this.logger.success(`Parando de gerenciar o canal [${channel.name}] no servidor [${channel.guild.name}]`);
+                this.logger.success(`[${channel.guild.name}] Parando de gerenciar o canal [${channel.name}].`);
             }
             
             this.managerChannels.delete(channelId);
@@ -104,7 +106,7 @@ class PartyManager extends Module {
                 if(partyEntered) { // Se conectou a alguma party
                     try {
                         partyEntered.addUser(member);
-                        this.logger.success(`[${guildName}] ${userName} entrou na party [${partyEntered.voiceChannel.name}]. ${partyEntered.connectedUsers} usuários restantes.`);
+                        this.logger.success(`[${guildName}] ${partyEntered.voiceChannel.name} (${partyEntered.connectedUsers}/${partyEntered.voiceChannel.userLimit}) - ${userName} entrou na party.`);
                     } catch(error) {
                         this.logger.error(Util.getErrorMessage(error));
                     }
@@ -113,7 +115,7 @@ class PartyManager extends Module {
                 if(partyExited) { // Se desconectou de alguma party
                     try {                        
                         partyExited.removeUser(member);
-                        this.logger.success(`[${guildName}] ${userName} saiu da party [${partyExited.voiceChannel.name}]. ${partyExited.connectedUsers} usuários restantes.`);
+                        this.logger.success(`[${guildName}] ${partyExited.voiceChannel.name} (${partyExited.connectedUsers}/${partyExited.voiceChannel.userLimit}) - ${userName} saiu da party.`);
 
                         // Transfere a liderança ao sair
                         if(partyExited.currentParticipants.size > 0 && member.user.id === partyExited.ownerId) {

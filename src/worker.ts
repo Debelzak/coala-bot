@@ -5,6 +5,7 @@ import Module from "./models/Module";
 // Modules
 import CoalaBase from "./modules/CoalaBase/coalaBase";
 import PartyManager from "./modules/PartyManager/partyManager";
+import { InteractionType } from "./models/Interaction";
 
 const version = require('../package.json').version;
 
@@ -35,24 +36,25 @@ class Worker extends Client {
 
         if(process.env.DEVELOPMENT === "TRUE") this.developmentMode = true;
 
+        this.greet();
+        this.logger.success(`Inicializando...`);
+
         this.login(this.botToken)
             .then(() => this.logger.success(`Conectado como ${this.user?.tag}!`))
             .catch((error: Error) => this.logger.error(error.message));
 
-        this.on('ready', () => {
-            this.ClearCommands().then(() => {
-                this.updatePresence();
-                
-                this.LoadModule(CoalaBase);
-                this.LoadModule(PartyManager);
-                
-                this.logger.success("Thread principal iniciada!");
-                if(process.env.SILENT === "TRUE") Logger.silent = true;
-            })
+        this.on('ready', async() => {
+            await this.updatePresence();
+            await this.LoadModule(CoalaBase);
+            await this.LoadModule(PartyManager);
+            await this.ClearUnusedCommands();
+            
+            this.logger.success("Inicialização completa!");
+            if(process.env.SILENT === "TRUE") Logger.silent = true;
         })
     }
 
-    private updatePresence() {
+    private async updatePresence() {
         let presenceInterval: NodeJS.Timeout | null = null;
         let activityIndex = 0;
 
@@ -82,35 +84,54 @@ class Worker extends Client {
         }
     }
 
-    private LoadModule(module: Module) {
+    private async LoadModule(module: Module) {
         module.init(this);
         this.loadedModules.push(module);
     }
 
-    private async ClearCommands(): Promise<void> {
+    private async ClearUnusedCommands(): Promise<void> {
         let guild: Guild | undefined;
         if(this.exclusiveGuildId) {
             guild = this.guilds.cache.get(this.exclusiveGuildId);
         }
 
-        const currentGlobalCommands = await this.application?.commands.fetch();
+        const detectedCommands = [];
+        const appCommands = (guild) ? await guild?.commands.fetch() : await this.application?.commands.fetch();
 
-        // Clean global commands
-        if(currentGlobalCommands) {
-            for(const [key,command] of currentGlobalCommands) {
-                await command.delete();
-                this.logger.warning(`Deletando comando global: /${command.name}`);
+        for(const module of this.loadedModules) {
+            for(const [key, interaction] of module.interactions) {
+                if(interaction.type !== InteractionType.COMMAND || !interaction.commandBuilder) continue;
+                detectedCommands.push(interaction.commandBuilder.name);
             }
         }
 
-        // Clean normal commands
-        const currentCommands = await guild?.commands.fetch();
-        if(currentCommands) {
-            for(const [key, command] of currentCommands) {
-                await command.delete();
-                this.logger.warning(`Deletando comando de guild: /${command.name}`);
+        if(appCommands) {
+            for(const [key,command] of appCommands) {
+                if(!detectedCommands.includes(command.name)) {
+                    await command.delete();
+                    this.logger.warning(`Deletando comando inutilizado: /${command.name}`);
+                }
             }
         }
+    }
+
+    private async greet() {
+        console.log(`
+            ⢀⠔⠊⠉⠑⢄⠀⠀⣀⣀⠤⠤⠤⢀⣀⠀⠀⣀⠔⠋⠉⠒⡄⠀
+            ⡎⠀⠀⠀⠀⠀⠀⠁⠀⠀⠀⠀⠀⠀⠀⠀⠉⠀⠀⠀⠀⠀⠘⡄
+            ⣧⢢⠀⠀⠀⠀⠀⠀⠀ ⣀⣄⠀⠀⠀⠀⠀⠀⠀⠀⠀⢈⣆⡗
+            ⠘⡇⠀⢀⠆⠀⠀⣀⠀⢰⣿⣿⣧⠀⢀⡀⠀⠀⠘⡆⠀⠈⡏⠀
+            ⠀⠑⠤⡜⠀⠀⠈⠋⠀⢸⣿⣿⣿⠀⠈⠃⠀⠀⠀⠸⡤⠜⠀⠀
+            ⠀⠀⠀⣇⠀⠀⠀⠀⠀⠢⣉⢏⣡⠀⠀⠀⠀⠀⠀⢠⠇⠀⠀⠀
+            ⠀⠀⠀⠈⠢⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⡤⠋⠀⠀⠀⠀
+            ⠀⠀⠀⠀⠀⢨⠃⠀⢀⠀⢀⠔⡆⠀⠀⠀⠀⠻⡄⠀⠀⠀⠀⠀
+            ⠀⠀⠀⠀⠀⡎⠀⠀⠧⠬⢾⠊⠀⠀⢀⡇⠀⠀⠟⢆⠀⠀⠀⠀
+            ⠀⠀⠀⠀⢀⡇⠀⠀⡞⠀⠀⢣⣀⡠⠊⠀⠀⠀⢸⠈⣆⡀⠀⠀
+            ⠀⠀⡠⠒⢸⠀⠀⠀⡇⡠⢤⣯⠅⠀⠀⠀⢀⡴⠃⠀⢸⠘⢤⠀
+            ⠀⢰⠁⠀⢸⠀⠀⠀⣿⠁⠀⠙⡟⠒⠒⠉⠀⠀⠀⠀⠀⡇⡎⠀
+            ⠀⠘⣄⠀⠸⡆⠀⠀⣿⠀⠀⠀⠁⠀⠀⠀⠀⠀⠀⠀⢀⠟⠁⠀
+            ⠀⠀⠘⠦⣀⣷⣀⡼⠽⢦⡀⠀⠀⢀⣀⣀⣀⠤⠄⠒⠁⠀⠀⠀
+                    Coala Bot`);
     }
 }
 
