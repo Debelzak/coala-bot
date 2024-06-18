@@ -1,19 +1,34 @@
-import { ActionRowBuilder, UserSelectMenuBuilder, Interaction as DiscordInteraction, ComponentType, GuildMember } from "discord.js"
+import { ActionRowBuilder, UserSelectMenuBuilder, ComponentType, GuildMember, ButtonBuilder, ButtonStyle } from "discord.js"
 import PartyManager from "../partyManager";
-import { Interaction, InteractionType } from "../../../models/Interaction";
+import { Interaction } from "../../../models/Interaction";
+
+const builder = new ButtonBuilder()
+    .setCustomId("btn_allowPartyMembers")
+    .setLabel("Permitir Membro")
+    .setStyle(ButtonStyle.Success)
+    .setEmoji("✅");
 
 export default new Interaction({
-    type: InteractionType.BUTTON,
-    customId: "btn_allowPartyMembers",
-    async run(interaction: DiscordInteraction) {
-        if(!interaction.isButton()) return;
-        const thisParty = (interaction.channelId) ? PartyManager.parties.get(interaction.channelId) : undefined;
-    
-        // Check if party was found
-        if(!thisParty) return;
-    
-        const isPartyOwner = await PartyManager.CheckOwnership(interaction.user, thisParty, interaction);
-        if(!isPartyOwner) {
+    name: "btn_allowPartyMembers",
+    builder: builder,
+    async run(interaction) {
+        if(!(interaction.member instanceof GuildMember)) return;
+
+        const thisParty = await PartyManager.GetPartyByMember(interaction.member);
+
+        if(!thisParty) {
+            await interaction.reply({
+                content: "Você não é líder de nenhuma party no momento.",
+                ephemeral: true
+            })
+            return;
+        }
+
+        if(thisParty.ownerId !== interaction.user.id) {
+            await interaction.reply({
+                content: "Apenas o líder da party pode realizar esta ação.",
+                ephemeral: true
+            })
             return;
         }
     
@@ -45,8 +60,7 @@ export default new Interaction({
                 const membersToAllow = newInteraction.values;
                 for(const memberId of membersToAllow) {
                     if(newInteraction.user.id === memberId) {
-                        newInteraction.reply({content: "Não é possível permitir a sí próprio(a).", ephemeral: true});
-                        return;
+                        return newInteraction.reply({content: "Não é possível permitir a sí próprio(a).", ephemeral: true});
                     }
                 }
                 

@@ -1,12 +1,10 @@
-import { GuildMember, VoiceBasedChannel } from "discord.js";
+import { GuildMember } from "discord.js";
 import { Database } from "sqlite3";
-import PartyManager from "../partyManager";
-import Worker from "../../../worker";
 
 export class PartyManagerChannel {
     public readonly channelId: string;
     public defaultPartyName: string = "Party de %USER%";
-    public maxUsers?: number = 16;
+    public maxUsers: number = 16;
     public readonly guildId: string;
     public readonly guildName: string;
     public partyCount: number = 0;
@@ -36,7 +34,7 @@ export class PartyManagerChannel {
             let gameName = "Um jogo";
   
             if(member.presence?.activities && member.presence?.activities.length > 0) {
-                let playingGame = member.presence?.activities[0].name;
+                const playingGame = member.presence?.activities[0].name;
                 gameName = playingGame;
             }
 

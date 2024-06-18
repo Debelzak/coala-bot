@@ -1,8 +1,9 @@
 import { 
-    Client, GuildMember, ButtonInteraction,
-    BaseMessageOptions, EmbedBuilder, ButtonBuilder, ButtonStyle,
-    ActionRowBuilder, ModalSubmitInteraction, User, Channel,
-    Guild 
+    Client, GuildMember,
+    BaseMessageOptions, EmbedBuilder, ButtonBuilder,
+    ActionRowBuilder, User, Channel,
+    Guild,
+    ModalSubmitInteraction
 } from "discord.js"
 import Party from "./models/Party";
 import Util from "../../util/utils";
@@ -10,6 +11,7 @@ import Module from "../../models/Module";
 import { PartyManagerChannel } from "./models/PartyManagerChannel";
 import * as commands from "./commands"
 import * as buttons from "./buttons"
+import { ExecutableInteraction } from "../../models/Interaction";
 
 class PartyManager extends Module {
     public readonly parties: Map<string, Party> = new Map<string, Party>();
@@ -33,7 +35,6 @@ class PartyManager extends Module {
     }
 
     private async buildManagerCache(): Promise<void> {
-        const managers = await PartyManagerChannel.DB_GetAll();
         PartyManagerChannel.DB_GetAll().then((managers) => {
             for(const [key, manager] of managers) {
                 this.addManagerChannel(manager);
@@ -126,7 +127,7 @@ class PartyManager extends Module {
 
                         // Delete party se estiver vazia.
                         if(partyExited.connectedUsers <= 0) {
-                            this.logger.success(`[${guildName}] Nenhum membro restante em [${partyExited.voiceChannel.name}], excluindo...`);
+                            this.logger.success(`[${guildName}] ${partyExited.voiceChannel.name} (${partyExited.connectedUsers}/${partyExited.voiceChannel.userLimit}) - Nenhum membro restante. Desfazendo...`);
                             await partyExited.voiceChannel.delete();
                             this.parties.delete(partyExited.voiceChannel.id);
                             partyExited.manager.partyCount--;
@@ -156,26 +157,27 @@ class PartyManager extends Module {
             party.addUser(owner);
             
             this.parties.set(party.voiceChannel.id, party);
-            this.logger.success(`[${party.voiceChannel.guild.name}] A party [${party.voiceChannel.name}] foi criada por ${owner.user.displayName}`);
+            this.logger.success(`[${party.voiceChannel.guild.name}] ${party.voiceChannel.name} (${party.connectedUsers}/${party.voiceChannel.userLimit}) - ${owner.user.displayName} iniciou uma party.`);
             
             // Move criador da party para a mesma.
             owner.voice.setChannel(partyVoiceChannel)
             
+            const embed = new EmbedBuilder()
+                .setFooter({text: "⏳ Carregando painel de controle..."});
+
             // Cria mensagem de controle da party
-            party.controlMessage = await partyVoiceChannel.send(`Party gerenciada por ${partyVoiceChannel.client.user}`);
+            party.controlMessage = await partyVoiceChannel.send({
+                embeds: [embed]
+            });
+
             this.ReloadControlMessage(party);
         } catch (error) {
             this.logger.error(`Falha ao criar a party ${manager.GetDefaultName(owner)} - ${Util.getErrorMessage(error)}`);
         }
     }
 
-    public async TogglePrivacy(requester: User, party: Party, interaction?: ButtonInteraction | ModalSubmitInteraction): Promise<void> {
+    public async TogglePrivacy(party: Party): Promise<void> {
         try {
-            const isPartyOwner = await this.CheckOwnership(requester, party, interaction);
-            if(!isPartyOwner) {
-                return;
-            }
-
             party.togglePrivacity();
             party.currentParticipants.forEach((participant) => {
                 party.voiceChannel.permissionOverwrites.edit(participant, {Connect:  true, ViewChannel: true});
@@ -184,42 +186,17 @@ class PartyManager extends Module {
             party.voiceChannel.permissionOverwrites.edit(party.voiceChannel.guild.roles.everyone, {Connect: !party.isPrivate, ViewChannel: !party.isPrivate});
 
             this.logger.success(`[${party.voiceChannel.guild.name}] A privacidade de [${party.voiceChannel.name}] foi alterada para ${(party.isPrivate) ? "privada" : "pública"}.`);
-
-            if(interaction) {
-                this.ReloadControlMessage(party);
-                const replyMessage = (party.isPrivate) ? `A party agora é privada e apenas membros com permissão podem ver ou participar.`
-                                     : `A party agora é pública e qualquer membro pode ver ou participar.`
-                await interaction.reply({
-                    content: replyMessage,
-                    ephemeral: false,
-                })
-            }
-            
-
         } catch(error) {
             this.logger.error(`[${party.voiceChannel.guild.name}] Falha ao tentar trocar a privacidade de [${party.voiceChannel.name}] - ${Util.getErrorMessage(error)}`);
         }
     }
 
-    public async RenameParty(requester: User, party: Party, newName: string, interaction?: ButtonInteraction | ModalSubmitInteraction): Promise<void> {
+    public async RenameParty(party: Party, newName: string): Promise<void> {
         try {
             const oldName = party.voiceChannel.name;
-            const isPartyOwner = await this.CheckOwnership(requester, party, interaction);
-            if(!isPartyOwner) {
-                return;
-            }
 
             await party.rename(`${newName}`);
             this.logger.success(`[${party.voiceChannel.guild.name}] A party [${oldName}] foi renomeada para [${newName}]`);
-
-            if(interaction) {
-                this.ReloadControlMessage(party);
-                interaction.reply({
-                    content: `${requester} renomeou a party para ${party.voiceChannel}.`,
-                    ephemeral: false,
-                })
-            }
-
         } catch(error) {
             this.logger.error(`[${party.voiceChannel.guild.name}] Falha ao tentar renomear a party [${party.voiceChannel.name}] - ${Util.getErrorMessage(error)}`);
         }
@@ -232,8 +209,8 @@ class PartyManager extends Module {
         if(member) {
             try {
                 if(party.changeOwner(member)) {
-                    this.logger.success(`[${party.voiceChannel.guild.name}] A liderança da party [${party.voiceChannel.name}] foi passada para [${member.displayName}].`);
-                    party.controlMessage?.reply(`A liderança da party agora é de ${member}`);
+                    this.logger.success(`[${party.voiceChannel.guild.name}] ${party.voiceChannel.name} (${party.connectedUsers}/${party.voiceChannel.userLimit}) - ${member.displayName} é o novo líder.`);
+                    party.voiceChannel.send(`A liderança da party agora é de ${member}`);
                     return true;
                 }
             } catch (error) {
@@ -313,19 +290,12 @@ class PartyManager extends Module {
         }
     }
 
-    public async CheckOwnership(user: User, party: Party, interaction?: ButtonInteraction | ModalSubmitInteraction): Promise<boolean> {
-        // Check if interaction user is owner of the party
-        if(party.ownerId !== user.id) {
-            if(interaction) {
-                await interaction.reply({
-                    content: `Apenas o líder da party pode realizar esta ação!`,
-                    ephemeral: true,
-                })
-            }
-            return false;
-        }
+    public async GetPartyByMember(member: GuildMember): Promise<Party | null> {
+        if(!member.voice.channel) return null;
 
-        return true;
+        const party = this.parties.get(member.voice.channel.id) || null
+
+        return party;
     }
 
     private controlMessage(party: Party): BaseMessageOptions {
@@ -348,56 +318,33 @@ class PartyManager extends Module {
             .addFields({ name: 'Membros Permitidos', value: `${allowedMembers}`, inline: true})
 
         // Define botões e dados vinculados a eles.
-        const renameParty = new ButtonBuilder()
-            .setLabel("Renomear")
-            .setStyle(ButtonStyle.Primary)
-            .setEmoji("📝")
-            .setCustomId("btn_renameParty")
-    
-        const transferPartyOwnership = new ButtonBuilder()
-            .setLabel("Transferir Líder")
-            .setStyle(ButtonStyle.Primary)
-            .setEmoji("👑")
-            .setCustomId("btn_transferPartyOwnership")
+        const renameParty = buttons.renameParty.builder as ButtonBuilder
+        const togglePrivacy = buttons.togglePartyPrivacy.builder as ButtonBuilder
+        togglePrivacy.setLabel(`${(party.isPrivate) ? "Tornar Pública" : "Tornar Privada"}`)
+        togglePrivacy.setEmoji(`${(party.isPrivate) ? "🔓" : "🔒"}`)
+        const banMember = buttons.banPartyMembers.builder as ButtonBuilder
+        const allowMember = buttons.allowPartyMembers.builder as ButtonBuilder
+        const transferPartyOwnership = buttons.transferPartyOwnership.builder as ButtonBuilder
+        const changeUserLimit = buttons.changeUserLimit.builder as ButtonBuilder
 
-        const togglePrivacy = new ButtonBuilder()
-            .setLabel(`${(party.isPrivate) ? "Tornar Pública" : "Tornar Privada"}`)
-            .setStyle(ButtonStyle.Primary)
-            .setEmoji(`${(party.isPrivate) ? "🔓" : "🔒"}`)
-            .setCustomId("btn_togglePartyPrivacy")
-
-        const banMember = new ButtonBuilder()
-            .setCustomId("btn_banPartyMembers")
-            .setLabel("Banir Membro")
-            .setStyle(ButtonStyle.Danger)
-            .setEmoji("➖");
-
-        const allowMember = new ButtonBuilder()
-            .setCustomId("btn_allowPartyMembers")
-            .setLabel("Permitir Membro")
-            .setStyle(ButtonStyle.Success)
-            .setEmoji("✅");
-
-        const firstRow: ActionRowBuilder = new ActionRowBuilder();
+        const firstRow = new ActionRowBuilder();
         const secondRow = new ActionRowBuilder();
         const thirdRow = new ActionRowBuilder();
 
         // First row
-        firstRow.addComponents(renameParty);
-        firstRow.addComponents(togglePrivacy);
+        firstRow.addComponents(renameParty, togglePrivacy);
         
         // Second row
-        secondRow.addComponents(transferPartyOwnership, banMember);
+        secondRow.addComponents(transferPartyOwnership, changeUserLimit);
 
         // Third row
-        thirdRow.addComponents(allowMember);
+        thirdRow.addComponents(banMember);
+        if(party.isPrivate || party.bannedParticipants.size > 0) thirdRow.addComponents(allowMember);
 
         const message: any = {
             embeds: [embedMessage],
-            components: [firstRow, secondRow],
+            components: [firstRow, secondRow, thirdRow],
         };
-
-        if(party.isPrivate || party.bannedParticipants.size > 0) message.components?.push(thirdRow);
             
         return message;
     }

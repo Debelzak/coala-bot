@@ -1,19 +1,34 @@
-import { TextInputBuilder, TextInputStyle, ActionRowBuilder, ModalBuilder, Interaction as DiscordInteraction } from "discord.js"
+import { TextInputBuilder, TextInputStyle, ActionRowBuilder, ModalBuilder, ButtonBuilder, ButtonStyle, GuildMember } from "discord.js"
 import PartyManager from "../partyManager";
-import { Interaction, InteractionType } from "../../../models/Interaction";
+import { Interaction } from "../../../models/Interaction";
+
+const builder = new ButtonBuilder()
+    .setCustomId("btn_renameParty")
+    .setLabel("Renomear")
+    .setStyle(ButtonStyle.Primary)
+    .setEmoji("📝")
 
 export default new Interaction({
-    type: InteractionType.BUTTON,
-    customId: "btn_renameParty",
-    async run(interaction: DiscordInteraction) {
-        if(!interaction.isButton()) return;
-        const thisParty = (interaction.channelId) ? PartyManager.parties.get(interaction.channelId) : undefined;
-    
-        // Check if party was found
-        if(!thisParty) return;
+    name: "btn_renameParty",
+    builder: builder,
+    async run(interaction) {
+        if(!(interaction.member instanceof GuildMember)) return;
 
-        const isPartyOwner = await PartyManager.CheckOwnership(interaction.user, thisParty, interaction);
-        if(!isPartyOwner) {
+        const thisParty = await PartyManager.GetPartyByMember(interaction.member);
+
+        if(!thisParty) {
+            await interaction.reply({
+                content: "Você não é líder de nenhuma party no momento.",
+                ephemeral: true
+            })
+            return;
+        }
+
+        if(thisParty.ownerId !== interaction.user.id) {
+            await interaction.reply({
+                content: "Apenas o líder da party pode realizar esta ação.",
+                ephemeral: true
+            })
             return;
         }
 
@@ -54,8 +69,17 @@ export default new Interaction({
         })
 
         if(submitted) {
+            await submitted.deferReply({ephemeral: true});
+
             const newName = submitted.fields.getTextInputValue("new_name");
-            await PartyManager.RenameParty(interaction.user, thisParty, newName, submitted);
+            await PartyManager.RenameParty(thisParty, newName);
+
+            PartyManager.ReloadControlMessage(thisParty);
+            thisParty.controlMessage?.reply({
+                content: `A party foi renomeada para ${thisParty.voiceChannel}.`
+            })
+
+            submitted.deleteReply();
         }
     }
 })

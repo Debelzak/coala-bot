@@ -1,16 +1,16 @@
-import { Client, Interaction as DiscordInteraction, Guild, SlashCommandOptionsOnlyBuilder } from "discord.js"
+import { ButtonBuilder, ButtonInteraction, Client, CommandInteraction, Interaction as DiscordInteraction, Guild, SlashCommandBuilder, SlashCommandOptionsOnlyBuilder } from "discord.js"
 import Logger from "../logger";
-import { Interaction, InteractionType } from "./Interaction";
+import { ExecutableInteraction, Interaction } from "./Interaction";
 import Worker from "../worker"
 import Util from "../util/utils";
 
 export default class Module {
     protected client: Client | null = null;
     protected readonly logger: Logger;
-    public interactions: Map<string, Interaction>;
+    public interactions: Map<string, Interaction<SlashCommandBuilder | ButtonBuilder>>;
 
     constructor() {
-        this.interactions = new Map<string, Interaction>();
+        this.interactions = new Map<string, Interaction<SlashCommandBuilder | ButtonBuilder>>();
         this.logger = new Logger(this.constructor.name);
     }
 
@@ -18,25 +18,26 @@ export default class Module {
         this.client = client;
         this.logger.success("Inicializando módulo...");
         
-        client.on('interactionCreate', this.executeInteraction.bind(this));
+        client.on('interactionCreate', (interaction: DiscordInteraction) => {
+            this.executeInteraction.bind(this)(interaction as ExecutableInteraction);
+        });
     }
 
     public registerInteractions(interactions: object) {
         for(const [key, interaction] of Object.entries(interactions)) {
             if(interaction instanceof Interaction) {
-                if(interaction.type === InteractionType.COMMAND) {
-                    if(interaction.commandBuilder) this.registerCommand(interaction.commandBuilder)
+                if(interaction.isCommand()) {
+                    this.registerCommand(interaction.builder)
                 }
 
-                this.interactions.set(interaction.customId, interaction);
+                this.interactions.set(interaction.name, interaction);
             } else {
                 continue;
             }
         }
     }
 
-    private registerCommand(builder: SlashCommandOptionsOnlyBuilder): void
-    {
+    private registerCommand(builder: SlashCommandOptionsOnlyBuilder): void {
         let guild: Guild | undefined;
         if(Worker.exclusiveGuildId) {
             guild = this.client?.guilds.cache.get(Worker.exclusiveGuildId);
@@ -56,7 +57,7 @@ export default class Module {
         }
     }
 
-    private executeInteraction(interaction: DiscordInteraction) {
+    private executeInteraction(interaction: ExecutableInteraction) {
         let foundInteraction;
         if(interaction.isCommand()) foundInteraction = this.interactions.get(interaction.commandName)
         if(interaction.isButton()) foundInteraction = this.interactions.get(interaction.customId)

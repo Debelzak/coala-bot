@@ -19,13 +19,13 @@ export default class Party {
     private lastRenameTimestamp: number = 0;
 
     constructor(ownerId: string, voiceChannel: VoiceBasedChannel, manager: PartyManagerChannel) {
-        this.manager = manager;
         this.partyId = uuidv4();
         this.ownerId = ownerId;
         this.voiceChannel = voiceChannel;
         this.currentParticipants = new Map<string, GuildMember>();
         this.bannedParticipants = new Map<string, GuildMember>();
         this.allowedParticipants = new Map<string, GuildMember>();
+        this.manager = manager;
     }
     
     public addUser(member: GuildMember): void {

@@ -1,5 +1,5 @@
 import { EmbedBuilder, Interaction as DiscordInteraction, SlashCommandBuilder } from "discord.js"
-import { Interaction, InteractionType } from "../../../models/Interaction";
+import { Interaction } from "../../../models/Interaction";
 import os from "os"
 import Util from "../../../util/utils";
 import Worker from "../../../worker"
@@ -8,23 +8,20 @@ const builder = new SlashCommandBuilder()
     .setName("help")
     .setDescription("❓ Informações sobre o bot")
 
-
 export default new Interaction({
-    type: InteractionType.COMMAND,
-    customId: "help",
-    commandBuilder: builder,
-    async run(interaction: DiscordInteraction): Promise<void> {
-        if(!interaction.isCommand()) return;
-
+    name: "help",
+    builder: builder,
+    async run(interaction): Promise<void> {
         const gitVersion: string = (await Util.getCommitHash()).substring(0, 7);
         const version: string = (gitVersion !== "null") ? `${gitVersion}-git` : "unknown";
         let availableCommands: string = "";
         for(const module of Worker.loadedModules) {
             for(const [key, interaction] of module.interactions) {
-                if(interaction.type !== InteractionType.COMMAND || !interaction.commandBuilder) continue;
-                const command = interaction.commandBuilder;
-                const permissions = command.toJSON().default_member_permissions;
-                availableCommands = availableCommands.concat(`**/${command.name}** : ${command.description} ${(permissions === "8") ? "**[admin]**" : ""} \n`);
+                if(interaction.isCommand()){
+                    const command = interaction.builder;
+                    const permissions = command.default_member_permissions;
+                    availableCommands = availableCommands.concat(`**/${command.name}** : ${command.description} ${(permissions === "8") ? "**[admin]**" : ""} \n`);
+                }
             }
         }
 

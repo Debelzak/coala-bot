@@ -1,17 +1,48 @@
-import { Interaction as DiscordInteraction } from "discord.js"
+import { ButtonBuilder, ButtonStyle, GuildMember } from "discord.js"
 import PartyManager from "../partyManager";
-import { Interaction, InteractionType } from "../../../models/Interaction";
+import { Interaction } from "../../../models/Interaction";
+
+const builder = new ButtonBuilder()
+    .setLabel(`Tornar Privada`)
+    .setStyle(ButtonStyle.Primary)
+    .setEmoji(`🔒`)
+    .setCustomId("btn_togglePartyPrivacy")
 
 export default new Interaction({
-    type: InteractionType.BUTTON,
-    customId: "btn_togglePartyPrivacy",
-    async run(interaction: DiscordInteraction) {
-        if(!interaction.isButton()) return;
-        const thisParty = (interaction.channelId) ? PartyManager.parties.get(interaction.channelId) : undefined;
+    name: "btn_togglePartyPrivacy",
+    builder: builder,
+    async run(interaction) {
+        if(!(interaction.member instanceof GuildMember)) return;
+
+        const thisParty = await PartyManager.GetPartyByMember(interaction.member);
+
+        if(!thisParty) {
+            await interaction.reply({
+                content: "Você não é líder de nenhuma party no momento.",
+                ephemeral: true
+            })
+            return;
+        }
+
+        if(thisParty.ownerId !== interaction.user.id) {
+            await interaction.reply({
+                content: "Apenas o líder da party pode realizar esta ação.",
+                ephemeral: true
+            })
+            return;
+        }
     
-        // Check if party was found
-        if(!thisParty) return;
-    
-        await PartyManager.TogglePrivacy(interaction.user, thisParty, interaction)
+        await interaction.deferReply({ephemeral: true});
+
+        await PartyManager.TogglePrivacy(thisParty);
+
+        PartyManager.ReloadControlMessage(thisParty);
+
+        thisParty.controlMessage?.reply({
+            content: (thisParty.isPrivate) ? `A party agora é privada e apenas membros com permissão podem ver ou participar.`
+                                           : `A party agora é pública e qualquer membro pode ver ou participar.`
+        })
+
+        interaction.deleteReply();
     }
 })

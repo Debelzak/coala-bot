@@ -1,11 +1,17 @@
-import { ActionRowBuilder, ChannelSelectMenuBuilder, ChannelType, ComponentType, Interaction as DiscordInteraction, EmbedBuilder } from "discord.js"
-import { Interaction, InteractionType } from "../../../../models/Interaction";
+import { ActionRowBuilder, ButtonBuilder, ButtonStyle, ChannelSelectMenuBuilder, ChannelType, ComponentType, EmbedBuilder } from "discord.js"
+import { Interaction } from "../../../../models/Interaction";
 import PartyManager from "../../partyManager";
 
+const builder = new ButtonBuilder()
+    .setCustomId("btn_partyNewManagerChannel")
+    .setEmoji("➕")
+    .setLabel("Novo canal")
+    .setStyle(ButtonStyle.Primary)
+
 export default new Interaction({
-    type: InteractionType.BUTTON,
-    customId: "btn_partyNewManagerChannel",
-    async run(interaction: DiscordInteraction): Promise<void> {
+    name: "btn_partyNewManagerChannel",
+    builder: builder,
+    async run(interaction): Promise<void> {
         if(!interaction.isButton()) return;
 
         const embed = new EmbedBuilder()

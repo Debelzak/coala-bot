@@ -1,13 +1,17 @@
-import { ActionRowBuilder, ComponentType, Interaction as DiscordInteraction, EmbedBuilder, StringSelectMenuBuilder, StringSelectMenuOptionBuilder } from "discord.js"
-import { Interaction, InteractionType } from "../../../../models/Interaction";
+import { ActionRowBuilder, ButtonBuilder, ButtonStyle, ComponentType, Interaction as DiscordInteraction, EmbedBuilder, StringSelectMenuBuilder, StringSelectMenuOptionBuilder } from "discord.js"
+import { Interaction } from "../../../../models/Interaction";
 import PartyManager from "../../partyManager";
 
-export default new Interaction({
-    type: InteractionType.BUTTON,
-    customId: "btn_partyStopManagement",
-    async run(interaction: DiscordInteraction): Promise<void> {
-        if(!interaction.isButton()) return;
+const builder = new ButtonBuilder()
+    .setCustomId("btn_partyStopManagement")
+    .setEmoji("➖")
+    .setLabel("Parar gerenciamento")
+    .setStyle(ButtonStyle.Danger)
 
+export default new Interaction({
+    name: "btn_partyStopManagement",
+    builder: builder,
+    async run(interaction): Promise<void> {
         const reply = await interaction.deferReply({
             fetchReply: true,
             ephemeral: true

@@ -3,13 +3,13 @@ import PartyManager from "../partyManager";
 import { Interaction } from "../../../models/Interaction";
 
 const builder = new ButtonBuilder()
-    .setLabel("Transferir Líder")
+    .setLabel("Ajustar Limite")
     .setStyle(ButtonStyle.Primary)
-    .setEmoji("👑")
-    .setCustomId("btn_transferPartyOwnership")
+    .setEmoji("🎚️")
+    .setCustomId("btn_changeUserLimit")
 
 export default new Interaction({
-    name: "btn_transferPartyOwnership",
+    name: "btn_changeUserLimit",
     builder: builder,
     async run(interaction) {
         if(!(interaction.member instanceof GuildMember)) return;
@@ -32,27 +32,17 @@ export default new Interaction({
             return;
         }
     
-        if(thisParty.connectedUsers <= 1) {
-            await interaction.reply({
-                content: `Não há ninguém para transferir a liderança.`,
-                ephemeral: true,
-            });
-            return;
-        }
-    
         const select = new StringSelectMenuBuilder()
             .setCustomId(interaction.id)
-            .setPlaceholder('Selecione um participante')
+            .setPlaceholder('Selecione um novo limite de usuários')
             .setMaxValues(1)
             .setMinValues(1)
         
-        for(const user of thisParty.currentParticipants) {
-            if(user[1].id === interaction.user.id) continue;
-    
+        for(let i=1; i<=25; i++) {
             select.addOptions(
                 new StringSelectMenuOptionBuilder()
-                    .setLabel(`@${ (user[1].nickname !== null) ? user[1].nickname !== null : user[1].displayName !== null }`)
-                    .setValue(user[1].id)
+                    .setLabel(`${i}`)
+                    .setValue(i.toString())
             );
         }
     
@@ -60,7 +50,6 @@ export default new Interaction({
             .addComponents(select);
     
         const reply = await interaction.reply({
-            content: `Selecione um novo líder da Party`,
             components: [firstRow],
             fetchReply: true,
             ephemeral: true,
@@ -75,17 +64,17 @@ export default new Interaction({
         collector.on("collect", (newInteraction) => {
             interaction.deleteReply()
                 .then(async() => {
-                    const newLeaderId = newInteraction.values[0];
-                    const newLeader = PartyManager.TransferOwnership(newLeaderId, thisParty);
-                    if(!newLeader) {
-                        return newInteraction.reply({content: `Não foi possível alterar o líder da party, o membro não está disponível.`, ephemeral: true});
-                    }
+                    await newInteraction.deferReply({ephemeral: true})
+
+                    const newLimit = parseInt(newInteraction.values[0]);
                     
-                    PartyManager.ReloadControlMessage(thisParty);
-                    newInteraction.reply({
-                        content: `Liderança da party transferida.`,
-                        ephemeral: true
+                    thisParty.voiceChannel.setUserLimit(newLimit)
+
+                    thisParty.controlMessage?.reply({
+                        content: `O limite de usuários foi alterado para \`${newLimit}\`.`,
                     })
+
+                    newInteraction.deleteReply();
                 })
         });
 

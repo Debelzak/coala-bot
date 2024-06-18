@@ -1,19 +1,34 @@
-import { ActionRowBuilder, UserSelectMenuBuilder, Interaction as DiscordInteraction, ComponentType, GuildMember, PermissionsBitField } from "discord.js"
+import { ActionRowBuilder, UserSelectMenuBuilder, ComponentType, GuildMember, PermissionsBitField, ButtonBuilder, ButtonStyle } from "discord.js"
 import PartyManager from "../partyManager";
-import { Interaction, InteractionType } from "../../../models/Interaction";
+import { Interaction } from "../../../models/Interaction";
+
+const builder = new ButtonBuilder()
+    .setCustomId("btn_banPartyMembers")
+    .setLabel("Banir Membro")
+    .setStyle(ButtonStyle.Danger)
+    .setEmoji("➖");
 
 export default new Interaction({
-    type: InteractionType.BUTTON,
-    customId: "btn_banPartyMembers",
-    async run(interaction: DiscordInteraction) {
-        if(!interaction.isButton()) return;
-        const thisParty = (interaction.channelId) ? PartyManager.parties.get(interaction.channelId) : undefined;
-    
-        // Check if party was found
-        if(!thisParty) return;
-    
-        const isPartyOwner = await PartyManager.CheckOwnership(interaction.user, thisParty, interaction);
-        if(!isPartyOwner) {
+    name: "btn_banPartyMembers",
+    builder: builder,
+    async run(interaction) {
+        if(!(interaction.member instanceof GuildMember)) return;
+
+        const thisParty = await PartyManager.GetPartyByMember(interaction.member);
+
+        if(!thisParty) {
+            await interaction.reply({
+                content: "Você não é líder de nenhuma party no momento.",
+                ephemeral: true
+            })
+            return;
+        }
+
+        if(thisParty.ownerId !== interaction.user.id) {
+            await interaction.reply({
+                content: "Apenas o líder da party pode realizar esta ação.",
+                ephemeral: true
+            })
             return;
         }
     
@@ -46,13 +61,11 @@ export default new Interaction({
                 for(const memberId of membersToBan) {
                     if(newInteraction.guild?.members.cache.get(memberId)?.permissionsIn(newInteraction.channelId).has(PermissionsBitField.Flags.Administrator))
                     {
-                        newInteraction.reply({content: "Não é possível banir administradores.", ephemeral: true});
-                        return;
+                        return newInteraction.reply({content: "Não é possível banir administradores.", ephemeral: true});
                     }
 
                     if(thisParty.ownerId === memberId || newInteraction.user.id === memberId) {
-                        newInteraction.reply({content: "Não é possível banir o líder da party e/ou banir a sí.", ephemeral: true});
-                        return;
+                        return newInteraction.reply({content: "Não é possível banir o líder da party e/ou banir a sí.", ephemeral: true});
                     }
                 }
                 
@@ -64,6 +77,7 @@ export default new Interaction({
                 }
                 reply = reply.concat(".");
                 PartyManager.ReloadControlMessage(thisParty);
+                
                 newInteraction.editReply(reply);
             })
         });

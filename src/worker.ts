@@ -1,11 +1,10 @@
-import { Client, GatewayIntentBits, ActivityType, ActivitiesOptions, Guild } from "discord.js";
+import { Client, GatewayIntentBits, ActivityType, ActivitiesOptions, Guild, SlashCommandBuilder } from "discord.js";
 import Logger from "./logger";
 import Module from "./models/Module";
 
 // Modules
 import CoalaBase from "./modules/CoalaBase/coalaBase";
 import PartyManager from "./modules/PartyManager/partyManager";
-import { InteractionType } from "./models/Interaction";
 
 const version = require('../package.json').version;
 
@@ -31,13 +30,13 @@ class Worker extends Client {
     }
 
     public start(token: string, guildId?: string) {
+        this.greet();
+        this.logger.success(`Inicializando...`);
+
         this.botToken = token;
         this.exclusiveGuildId = guildId;
 
         if(process.env.DEVELOPMENT === "TRUE") this.developmentMode = true;
-
-        this.greet();
-        this.logger.success(`Inicializando...`);
 
         this.login(this.botToken)
             .then(() => this.logger.success(`Conectado como ${this.user?.tag}!`))
@@ -100,8 +99,8 @@ class Worker extends Client {
 
         for(const module of this.loadedModules) {
             for(const [key, interaction] of module.interactions) {
-                if(interaction.type !== InteractionType.COMMAND || !interaction.commandBuilder) continue;
-                detectedCommands.push(interaction.commandBuilder.name);
+                if(interaction.isCommand())
+                    detectedCommands.push(interaction.builder.name);
             }
         }
 
@@ -115,7 +114,7 @@ class Worker extends Client {
         }
     }
 
-    private async greet() {
+    private greet() {
         console.log(`
             ⢀⠔⠊⠉⠑⢄⠀⠀⣀⣀⠤⠤⠤⢀⣀⠀⠀⣀⠔⠋⠉⠒⡄⠀
             ⡎⠀⠀⠀⠀⠀⠀⠁⠀⠀⠀⠀⠀⠀⠀⠀⠉⠀⠀⠀⠀⠀⠘⡄

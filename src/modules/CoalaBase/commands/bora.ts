@@ -1,5 +1,5 @@
 import { Interaction as DiscordInteraction, SlashCommandBuilder, SlashCommandUserOption } from "discord.js"
-import { Interaction, InteractionType } from "../../../models/Interaction";
+import { Interaction } from "../../../models/Interaction";
 
 const builder = new SlashCommandBuilder()
     .setName("bora")
@@ -11,10 +11,9 @@ const builder = new SlashCommandBuilder()
     )
 
 export default new Interaction({
-    type: InteractionType.COMMAND,
-    customId: "bora",
-    commandBuilder: builder,
-    async run(interaction: DiscordInteraction): Promise<void> {
+    name: "bora",
+    builder: builder,
+    async run(interaction): Promise<void> {
         if(!interaction.isCommand()) return;
         const membro = interaction.options.get("membro")?.member;
         await interaction.reply({
