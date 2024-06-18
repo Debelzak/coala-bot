@@ -290,6 +290,15 @@ class PartyManager extends Module {
         }
     }
 
+    public async ChangeUserLimit(party: Party, newLimit: number) {
+        try {
+            await party.voiceChannel.setUserLimit(newLimit);
+            this.logger.success(`[${party.voiceChannel.guild.name}] ${party.voiceChannel.name} (${party.connectedUsers}/${party.voiceChannel.userLimit}) - Limite de usuários alterado para ${newLimit}.`);
+        } catch(error) {
+            this.logger.error(`[${party.voiceChannel.guild.name}] Falha ao alterar limite de usuários - ${Util.getErrorMessage(error)}`);
+        }
+    }
+
     public async GetPartyByMember(member: GuildMember): Promise<Party | null> {
         if(!member.voice.channel) return null;
 

@@ -68,7 +68,7 @@ export default new Interaction({
 
                     const newLimit = parseInt(newInteraction.values[0]);
                     
-                    thisParty.voiceChannel.setUserLimit(newLimit)
+                    await PartyManager.ChangeUserLimit(thisParty, newLimit);
 
                     thisParty.controlMessage?.reply({
                         content: `O limite de usuários foi alterado para \`${newLimit}\`.`,
