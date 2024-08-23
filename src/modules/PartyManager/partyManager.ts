@@ -1,9 +1,8 @@
 import { 
     Client, GuildMember,
     BaseMessageOptions, EmbedBuilder, ButtonBuilder,
-    ActionRowBuilder, User, Channel,
+    ActionRowBuilder, Channel,
     Guild,
-    ModalSubmitInteraction
 } from "discord.js"
 import Party from "./models/Party";
 import Util from "../../util/utils";
@@ -11,7 +10,6 @@ import Module from "../../models/Module";
 import { PartyManagerChannel } from "./models/PartyManagerChannel";
 import * as commands from "./commands"
 import * as buttons from "./buttons"
-import { ExecutableInteraction } from "../../models/Interaction";
 
 class PartyManager extends Module {
     public readonly parties: Map<string, Party> = new Map<string, Party>();
@@ -98,7 +96,6 @@ class PartyManager extends Module {
                 if(partyManagerEntered) { // Se entrou em canal gerenciado pelo bot (Canal de Criar Party)
                     try {
                         await this.CreateParty(partyManagerEntered, member);
-                        partyManagerEntered.partyCount++;
                     } catch(error) {
                         this.logger.error(Util.getErrorMessage(error));
                     }
@@ -140,16 +137,16 @@ class PartyManager extends Module {
         })
     }
 
-    private async CreateParty(manager: PartyManagerChannel, owner: GuildMember, partyName?: string): Promise<void> {
+    private async CreateParty(manager: PartyManagerChannel, owner: GuildMember, partyName?: string): Promise<boolean> {
         try {
             const channel: Channel | undefined = this.client?.channels.cache.get(manager.channelId);
-            if(!channel?.isVoiceBased()) return;
+            if(!channel?.isVoiceBased()) return false;
 
             const partyVoiceChannel = await channel.clone({
                 name: (partyName) ? partyName : manager.GetDefaultName(owner), 
                 userLimit: manager.maxUsers, 
                 permissionOverwrites: [
-                    {allow: "SendMessages", id: channel.guild.roles.everyone.id}
+                    {allow: "SendMessages", id: channel.guild.roles.everyone.id},
                 ]
             });
 
@@ -157,10 +154,11 @@ class PartyManager extends Module {
             party.addUser(owner);
             
             this.parties.set(party.voiceChannel.id, party);
+            party.manager.partyCount++;
             this.logger.success(`[${party.voiceChannel.guild.name}] ${party.voiceChannel.name} (${party.connectedUsers}/${party.voiceChannel.userLimit}) - ${owner.user.displayName} iniciou uma party.`);
             
             // Move criador da party para a mesma.
-            owner.voice.setChannel(partyVoiceChannel)
+            await owner.voice.setChannel(partyVoiceChannel);
             
             const embed = new EmbedBuilder()
                 .setFooter({text: "⏳ Carregando painel de controle..."});
@@ -170,20 +168,30 @@ class PartyManager extends Module {
                 embeds: [embed]
             });
 
-            this.ReloadControlMessage(party);
+            await this.ReloadControlMessage(party);
+            
+            return true;
         } catch (error) {
             this.logger.error(`Falha ao criar a party ${manager.GetDefaultName(owner)} - ${Util.getErrorMessage(error)}`);
+            return false;
         }
     }
 
     public async TogglePrivacy(party: Party): Promise<void> {
         try {
+            if(!this.client?.user) return;
+
             party.togglePrivacity();
+
+            let promises: Promise<any>[] = [];
             party.currentParticipants.forEach((participant) => {
-                party.voiceChannel.permissionOverwrites.edit(participant, {Connect:  true, ViewChannel: true});
+                promises.push(party.voiceChannel.permissionOverwrites.edit(participant, {Connect:  true, ViewChannel: true}));
             })
+
+            promises.push(party.voiceChannel.permissionOverwrites.edit(this.client.user, {Connect:  true, ViewChannel: true}));
+            promises.push(party.voiceChannel.permissionOverwrites.edit(party.voiceChannel.guild.roles.everyone, {Connect: !party.isPrivate, ViewChannel: !party.isPrivate}));
             
-            party.voiceChannel.permissionOverwrites.edit(party.voiceChannel.guild.roles.everyone, {Connect: !party.isPrivate, ViewChannel: !party.isPrivate});
+            await Promise.all(promises);
 
             this.logger.success(`[${party.voiceChannel.guild.name}] A privacidade de [${party.voiceChannel.name}] foi alterada para ${(party.isPrivate) ? "privada" : "pública"}.`);
         } catch(error) {

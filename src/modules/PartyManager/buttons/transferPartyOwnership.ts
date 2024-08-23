@@ -87,6 +87,9 @@ export default new Interaction({
                         ephemeral: true
                     })
                 })
+                .catch((error) => {
+                    return;
+                })
         });
 
         collector.on("end", (collected, reason) => {

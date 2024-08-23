@@ -1,4 +1,4 @@
-import { ButtonBuilder, ButtonInteraction, Client, CommandInteraction, Interaction as DiscordInteraction, Guild, SlashCommandBuilder, SlashCommandOptionsOnlyBuilder } from "discord.js"
+import { Client, Interaction as DiscordInteraction, Guild, SlashCommandOptionsOnlyBuilder } from "discord.js"
 import Logger from "../logger";
 import { ExecutableInteraction, Interaction } from "./Interaction";
 import Worker from "../worker"
@@ -7,10 +7,10 @@ import Util from "../util/utils";
 export default class Module {
     protected client: Client | null = null;
     protected readonly logger: Logger;
-    public interactions: Map<string, Interaction<SlashCommandBuilder | ButtonBuilder>>;
+    public interactions: Map<string, Interaction<ExecutableInteraction>>;
 
     constructor() {
-        this.interactions = new Map<string, Interaction<SlashCommandBuilder | ButtonBuilder>>();
+        this.interactions = new Map<string, Interaction<ExecutableInteraction>>();
         this.logger = new Logger(this.constructor.name);
     }
 
@@ -63,12 +63,10 @@ export default class Module {
         if(interaction.isButton()) foundInteraction = this.interactions.get(interaction.customId)
 
         if(foundInteraction) {
-            try {
-                foundInteraction.run(interaction);
-            }
-            catch (error: unknown) {
+            foundInteraction.run(interaction)
+            .catch((error) => {
                 this.logger.error(`Erro ao manusear interação - ${error as string}`);
-            }
+            })
         }
     }
 }

@@ -75,11 +75,11 @@ export default new Interaction({
             await PartyManager.RenameParty(thisParty, newName);
 
             PartyManager.ReloadControlMessage(thisParty);
-            thisParty.controlMessage?.reply({
+            await thisParty.controlMessage?.reply({
                 content: `A party foi renomeada para ${thisParty.voiceChannel}.`
             })
 
-            submitted.deleteReply();
+            await submitted.deleteReply();
         }
     }
 })

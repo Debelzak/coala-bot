@@ -70,11 +70,14 @@ export default new Interaction({
                     
                     await PartyManager.ChangeUserLimit(thisParty, newLimit);
 
-                    thisParty.controlMessage?.reply({
+                    await thisParty.controlMessage?.reply({
                         content: `O limite de usuários foi alterado para \`${newLimit}\`.`,
                     })
 
-                    newInteraction.deleteReply();
+                    await newInteraction.deleteReply();
+                })
+                .catch((error) => {
+                    return;
                 })
         });
 

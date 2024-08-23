@@ -55,25 +55,26 @@ export default new Interaction({
         });
 
         collector.on("collect", (newInteraction) => {
-            interaction.deleteReply().then(async() => {
-                
-                const membersToAllow = newInteraction.values;
-                for(const memberId of membersToAllow) {
-                    if(newInteraction.user.id === memberId) {
-                        return newInteraction.reply({content: "Não é possível permitir a sí próprio(a).", ephemeral: true});
+            interaction.deleteReply()
+                .then(async() => {
+                    
+                    const membersToAllow = newInteraction.values;
+                    for(const memberId of membersToAllow) {
+                        if(newInteraction.user.id === memberId) {
+                            return newInteraction.reply({content: "Não é possível permitir a sí próprio(a).", ephemeral: true});
+                        }
                     }
-                }
-                
-                await newInteraction.deferReply();
-                const allowedMembers: GuildMember[] = await PartyManager.AllowMembers(membersToAllow, thisParty);
-                let reply: string = `Os seguintes membros agora podem participar desta party:`;
-                for(const member of allowedMembers) {
-                    reply = reply.concat(` ${member}`);
-                }
-                reply = reply.concat(".");
-                PartyManager.ReloadControlMessage(thisParty);
-                newInteraction.editReply(reply);
-            })
+                    
+                    await newInteraction.deferReply();
+                    const allowedMembers: GuildMember[] = await PartyManager.AllowMembers(membersToAllow, thisParty);
+                    let reply: string = `Os seguintes membros agora podem participar desta party:`;
+                    for(const member of allowedMembers) {
+                        reply = reply.concat(` ${member}`);
+                    }
+                    reply = reply.concat(".");
+                    PartyManager.ReloadControlMessage(thisParty);
+                    newInteraction.editReply(reply);
+                })
         });
 
         collector.on("end", (collected, reason) => {

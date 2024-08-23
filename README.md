@@ -57,5 +57,6 @@ docker-compose up -d
 ## 🌟 Tecnologias utilizadas
 - [Node.js](https://nodejs.org/)
 - [TypeScript](https://www.typescriptlang.org/)
+- [SQLite](https://www.sqlite.org/)
 - [Discord.js](https://discord.js.org/)
 - [Docker](https://www.docker.com/)

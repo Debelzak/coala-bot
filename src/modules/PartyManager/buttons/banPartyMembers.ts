@@ -55,31 +55,32 @@ export default new Interaction({
         });
 
         collector.on("collect", (newInteraction) => {
-            interaction.deleteReply().then(async() => {
-                
-                const membersToBan = newInteraction.values;
-                for(const memberId of membersToBan) {
-                    if(newInteraction.guild?.members.cache.get(memberId)?.permissionsIn(newInteraction.channelId).has(PermissionsBitField.Flags.Administrator))
-                    {
-                        return newInteraction.reply({content: "Não é possível banir administradores.", ephemeral: true});
-                    }
+            interaction.deleteReply()
+                .then(async() => {
+                    
+                    const membersToBan = newInteraction.values;
+                    for(const memberId of membersToBan) {
+                        if(newInteraction.guild?.members.cache.get(memberId)?.permissionsIn(newInteraction.channelId).has(PermissionsBitField.Flags.Administrator))
+                        {
+                            return newInteraction.reply({content: "Não é possível banir administradores.", ephemeral: true});
+                        }
 
-                    if(thisParty.ownerId === memberId || newInteraction.user.id === memberId) {
-                        return newInteraction.reply({content: "Não é possível banir o líder da party e/ou banir a sí.", ephemeral: true});
+                        if(thisParty.ownerId === memberId || newInteraction.user.id === memberId) {
+                            return newInteraction.reply({content: "Não é possível banir o líder da party e/ou banir a sí.", ephemeral: true});
+                        }
                     }
-                }
-                
-                await newInteraction.deferReply();
-                const bannedMembers: GuildMember[] = await PartyManager.BanMembers(membersToBan, thisParty);
-                let reply: string = `Os seguintes membros foram proibidos de participar desta party:`;
-                for(const member of bannedMembers) {
-                    reply = reply.concat(` ${member}`);
-                }
-                reply = reply.concat(".");
-                PartyManager.ReloadControlMessage(thisParty);
-                
-                newInteraction.editReply(reply);
-            })
+                    
+                    await newInteraction.deferReply();
+                    const bannedMembers: GuildMember[] = await PartyManager.BanMembers(membersToBan, thisParty);
+                    let reply: string = `Os seguintes membros foram proibidos de participar desta party:`;
+                    for(const member of bannedMembers) {
+                        reply = reply.concat(` ${member}`);
+                    }
+                    reply = reply.concat(".");
+                    PartyManager.ReloadControlMessage(thisParty);
+                    
+                    newInteraction.editReply(reply);
+                })
         });
 
         collector.on("end", (collected, reason) => {

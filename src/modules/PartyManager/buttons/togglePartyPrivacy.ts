@@ -38,11 +38,11 @@ export default new Interaction({
 
         PartyManager.ReloadControlMessage(thisParty);
 
-        thisParty.controlMessage?.reply({
+        await thisParty.controlMessage?.reply({
             content: (thisParty.isPrivate) ? `A party agora é privada e apenas membros com permissão podem ver ou participar.`
                                            : `A party agora é pública e qualquer membro pode ver ou participar.`
         })
 
-        interaction.deleteReply();
+        await interaction.deleteReply();
     }
 })
