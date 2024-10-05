@@ -1,4 +1,4 @@
-import { ActionRowBuilder, ButtonBuilder, ButtonStyle, Interaction as DiscordInteraction, EmbedBuilder, PermissionFlagsBits, SlashCommandBuilder } from "discord.js"
+import { ActionRowBuilder, ButtonBuilder, Interaction as DiscordInteraction, EmbedBuilder, PermissionFlagsBits, SlashCommandBuilder } from "discord.js"
 import { Interaction } from "../../../models/Interaction";
 import * as btns from "../buttons"
 
@@ -16,18 +16,26 @@ export default new Interaction({
 
         const buttons = [
             {
+                emoji: "➕",
+                label: "Novo canal",
                 description: "Começa a gerenciar um canal de voz.",
                 component: btns.partyNewManagerChannel.builder as ButtonBuilder
             },
             {
+                emoji: "📝",
+                label: "Alterar nome padrão",
                 description: "Alterar o template de nome padrão das parties criadas por um canal gerenciador.",
                 component: btns.partySetManagerDefaultName.builder as ButtonBuilder
             },
             {
+                emoji: "🎚️",
+                label: "Alterar limite",
                 description: "Alterar limite padrão de usuários das parties criadas por um canal gerenciador.",
                 component: btns.partySetManagerDefaultUserLimit.builder as ButtonBuilder
             },
             {
+                emoji: "➖",
+                label: "Parar gerenciamento",
                 description: "Para de gerenciar um canal.",
                 component: btns.partyStopManagement.builder as ButtonBuilder
             },
@@ -37,7 +45,7 @@ export default new Interaction({
 
         for(const button of buttons) {
             embed.addFields([
-                { name: `${button.component.data.emoji?.name} ${button.component.data.label}`, value: `${button.description}`, inline: false}
+                { name: `${button.emoji} ${button.label}`, value: `${button.description}`, inline: false}
             ])
             row.addComponents(button.component);
         }

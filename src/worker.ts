@@ -1,4 +1,4 @@
-import { Client, GatewayIntentBits, ActivityType, ActivitiesOptions, Guild, SlashCommandBuilder } from "discord.js";
+import { Client, GatewayIntentBits, ActivityType, ActivitiesOptions, Guild, SlashCommandBuilder, Partials } from "discord.js";
 import Logger from "./logger";
 import Module from "./models/Module";
 
@@ -22,7 +22,15 @@ class Worker extends Client {
                 GatewayIntentBits.Guilds,
                 GatewayIntentBits.GuildMessages,
                 GatewayIntentBits.GuildVoiceStates,
-                GatewayIntentBits.GuildPresences
+                GatewayIntentBits.GuildPresences,
+                GatewayIntentBits.DirectMessages,
+                GatewayIntentBits.DirectMessageTyping,
+                GatewayIntentBits.DirectMessageReactions,
+                GatewayIntentBits.DirectMessagePolls,
+            ],
+            partials:[
+                Partials.Channel,
+                Partials.Message,
             ]
         }
         super(options);

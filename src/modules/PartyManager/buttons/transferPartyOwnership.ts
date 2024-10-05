@@ -51,7 +51,7 @@ export default new Interaction({
     
             select.addOptions(
                 new StringSelectMenuOptionBuilder()
-                    .setLabel(`@${ (user[1].nickname !== null) ? user[1].nickname !== null : user[1].displayName !== null }`)
+                    .setLabel(`@${ (user[1].nickname !== null) ? user[1].nickname : user[1].displayName }`)
                     .setValue(user[1].id)
             );
         }

@@ -6,6 +6,12 @@ class CoalaBase extends Module {
     init(client: Client) {
         super.init(client);
         this.registerInteractions(commands);
+
+        client.on('messageCreate', (message) => {
+            if (message.author.bot) return;
+            if (message.guild) return;
+            message.reply("Cale a boque");
+        });
     }
 }
 
