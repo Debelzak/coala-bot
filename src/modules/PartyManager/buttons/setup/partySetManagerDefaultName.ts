@@ -12,6 +12,7 @@ export default new Interaction({
     name: "btn_partySetManagerDefaultName",
     builder: builder,
     async run(interaction): Promise<void> {
+        if(!interaction.isButton()) return;
          const reply = await interaction.deferReply({
             fetchReply: true,
             ephemeral: true

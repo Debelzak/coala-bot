@@ -68,5 +68,13 @@ export default class Module {
                 this.logger.error(`Erro ao manusear interação - ${error as string}`);
             })
         }
+        else 
+        {
+            if(interaction.isAutocomplete()) {
+                this.interactions.forEach((i) => {
+                    i.run(interaction);
+                })
+            }
+        }
     }
 }

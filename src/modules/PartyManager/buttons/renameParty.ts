@@ -12,6 +12,7 @@ export default new Interaction({
     name: "btn_renameParty",
     builder: builder,
     async run(interaction) {
+        if(!interaction.isButton()) return;
         if(!(interaction.member instanceof GuildMember)) return;
 
         const thisParty = await PartyManager.GetPartyByMember(interaction.member);

@@ -5,6 +5,7 @@ import Module from "./models/Module";
 // Modules
 import CoalaBase from "./modules/CoalaBase/coalaBase";
 import PartyManager from "./modules/PartyManager/partyManager";
+import ThroneAndLiberty from "./modules/ThroneAndLiberty/throne";
 
 const version = require('../package.json').version;
 
@@ -54,6 +55,7 @@ class Worker extends Client {
             await this.updatePresence();
             await this.LoadModule(CoalaBase);
             await this.LoadModule(PartyManager);
+            await this.LoadModule(ThroneAndLiberty);
             await this.ClearUnusedCommands();
             
             this.logger.success("Inicialização completa!");
@@ -107,8 +109,9 @@ class Worker extends Client {
 
         for(const module of this.loadedModules) {
             for(const [key, interaction] of module.interactions) {
-                if(interaction.isCommand())
+                if(interaction.isCommand()) {
                     detectedCommands.push(interaction.builder.name);
+                }
             }
         }
 

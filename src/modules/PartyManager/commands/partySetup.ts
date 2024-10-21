@@ -11,6 +11,7 @@ export default new Interaction({
     name: builder.name,
     builder: builder,
     async run(interaction) {
+        if(!interaction.isCommand()) return;
         const embed = new EmbedBuilder()
             .setTitle("Menu de configuração do gerenciador de party")
 

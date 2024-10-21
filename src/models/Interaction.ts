@@ -1,6 +1,6 @@
-import { ButtonBuilder, ButtonInteraction, CommandInteraction, SlashCommandBuilder, SlashCommandOptionsOnlyBuilder } from "discord.js";
+import { AutocompleteInteraction, ButtonBuilder, ButtonInteraction, CommandInteraction, SlashCommandBuilder, SlashCommandOptionsOnlyBuilder } from "discord.js";
 
-export type ExecutableInteraction = ButtonInteraction | CommandInteraction
+export type ExecutableInteraction = ButtonInteraction | CommandInteraction | AutocompleteInteraction
 
 export class Interaction<T> {
     public name: string;

@@ -12,10 +12,13 @@ export default new Interaction({
     name: "help",
     builder: builder,
     async run(interaction): Promise<void> {
+        if(!interaction.isCommand()) return;
+        
         const gitVersion: string = (await Util.getCommitHash()).substring(0, 7);
         const version: string = (gitVersion !== "null") ? `${gitVersion}-git` : "unknown";
         let availableCommands: string = "";
         for(const module of Worker.loadedModules) {
+            availableCommands = availableCommands.concat(`\n[ Módulo: **${module.constructor.name} ] **\n`);
             for(const [key, interaction] of module.interactions) {
                 if(interaction.isCommand()){
                     const command = interaction.builder;
