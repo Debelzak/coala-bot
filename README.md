@@ -46,12 +46,20 @@ cp .env.example .env
 ##### Usando o Node
 ```shell
 npm install
+npm run build
 npm start
 ```
 
 ##### Usando o Docker
 ```shell
 docker-compose up -d
+```
+
+##### Compilado imagem do docker
+```shell
+npm install
+npm run build
+docker buildx build -t coala-bot:latest .
 ```
 
 ## 🌟 Tecnologias utilizadas

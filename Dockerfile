@@ -1,9 +1,18 @@
-FROM node:21.7.3-alpine
+FROM node:23.5.0-alpine
 WORKDIR /usr/app
-COPY .git /usr/app/.git
-COPY src /usr/app/src
-COPY database /usr/app/database
-COPY package.json /usr/app/package.json
-COPY tsconfig.json /usr/app/tsconfig.json
-RUN npm install
+
+# Build
+COPY package.json ./package.json
+COPY tsconfig.json ./tsconfig.json
+COPY src ./src
+RUN npm install && npm run build
+
+# Copiar arquivos de runtime
+COPY .git ./.git
+COPY database ./database
+
+# Limpeza
+RUN npm install --omit=dev && rm -rf src tsconfig.json tsconfig.tsbuildinfo
+
+# Finally
 CMD [ "npm", "start" ]
