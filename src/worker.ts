@@ -3,11 +3,13 @@ import Logger from "./logger";
 import Module from "./models/Module";
 
 // Modules
-import CoalaBase from "./modules/CoalaBase/coalaBase";
-import PartyManager from "./modules/PartyManager/partyManager";
-import ThroneAndLiberty from "./modules/ThroneAndLiberty/throne";
-
-const version = require('../package.json').version;
+import * as modules from "./modules/index";
+import Util from "./util/utils";
+const load_modules: Module[] = [
+    modules.CoalaBase,
+    modules.PartyManager,
+    modules.ThroneAndLiberty
+]
 
 class Worker extends Client {
     public loadedModules: Module[] = [];
@@ -53,9 +55,10 @@ class Worker extends Client {
 
         this.on('ready', async() => {
             await this.updatePresence();
-            await this.LoadModule(CoalaBase);
-            await this.LoadModule(PartyManager);
-            await this.LoadModule(ThroneAndLiberty);
+            for(const module of load_modules) {
+                await this.LoadModule(module);
+            }
+
             await this.ClearUnusedCommands();
             
             this.logger.success("Inicialização completa!");
@@ -125,11 +128,18 @@ class Worker extends Client {
         }
     }
 
+    public getVersion() {
+        const packageVersion = require('../package.json').version; 
+        const gitVersion: string = Util.getCommitHash().substring(0, 7);
+
+        return `v${packageVersion}+${gitVersion}`;
+    }
+
     private greet() {
-        console.log(`
+        console.log(`\
             ⢀⠔⠊⠉⠑⢄⠀⠀⣀⣀⠤⠤⠤⢀⣀⠀⠀⣀⠔⠋⠉⠒⡄⠀
             ⡎⠀⠀⠀⠀⠀⠀⠁⠀⠀⠀⠀⠀⠀⠀⠀⠉⠀⠀⠀⠀⠀⠘⡄
-            ⣧⢢⠀⠀⠀⠀⠀⠀⠀ ⣀⣄⠀⠀⠀⠀⠀⠀⠀⠀⠀⢈⣆⡗
+            ⣧⢢⠀⠀⠀⠀⠀⠀⠀⠀⣀⣄⠀⠀⠀⠀⠀⠀⠀⠀⠀⢈⣆⡗
             ⠘⡇⠀⢀⠆⠀⠀⣀⠀⢰⣿⣿⣧⠀⢀⡀⠀⠀⠘⡆⠀⠈⡏⠀
             ⠀⠑⠤⡜⠀⠀⠈⠋⠀⢸⣿⣿⣿⠀⠈⠃⠀⠀⠀⠸⡤⠜⠀⠀
             ⠀⠀⠀⣇⠀⠀⠀⠀⠀⠢⣉⢏⣡⠀⠀⠀⠀⠀⠀⢠⠇⠀⠀⠀
@@ -141,7 +151,7 @@ class Worker extends Client {
             ⠀⢰⠁⠀⢸⠀⠀⠀⣿⠁⠀⠙⡟⠒⠒⠉⠀⠀⠀⠀⠀⡇⡎⠀
             ⠀⠘⣄⠀⠸⡆⠀⠀⣿⠀⠀⠀⠁⠀⠀⠀⠀⠀⠀⠀⢀⠟⠁⠀
             ⠀⠀⠘⠦⣀⣷⣀⡼⠽⢦⡀⠀⠀⢀⣀⣀⣀⠤⠄⠒⠁⠀⠀⠀
-                    Coala Bot`);
+            Coala Bot ${this.getVersion()}`);
     }
 }
 

@@ -8,38 +8,24 @@ class Util {
         return message;
     }
 
-    public static getCommitHash(): Promise<string>
-    {
-        return new Promise((resolve, reject) => {
+    public static getCommitHash(): string {
+        try {
             const repoDir = './';
-            
             const headFilePath = path.join(repoDir, '.git', 'HEAD');
             
-            fs.readFile(headFilePath, 'utf8', (err, data) => {
-                if (err) { 
-                    resolve("null");
-                    return;
-                }
-
-                const headRef = data.trim();
-                const match = headRef.match(/^ref: refs\/heads\/(.*)$/);
-                if (match) {
-                    const branchFilePath = path.join(repoDir, '.git', 'refs', 'heads', match[1]);
-                    fs.readFile(branchFilePath, 'utf8', (err, data) => {
-                        if (err) { 
-                            resolve("null");
-                            return;
-                        }
-
-                        resolve(data.trim());
-                        return;
-                    });
-                } else {
-                    resolve(headRef);
-                    return;
-                }
-            });
-        })
+            const headData = fs.readFileSync(headFilePath, 'utf8').trim();
+            const match = headData.match(/^ref: refs\/heads\/(.*)$/);
+    
+            if (match) {
+                const branchFilePath = path.join(repoDir, '.git', 'refs', 'heads', match[1]);
+                const branchData = fs.readFileSync(branchFilePath, 'utf8').trim();
+                return branchData;
+            } else {
+                return headData;
+            }
+        } catch (err) {
+            return "null";
+        }
     }
 }
 

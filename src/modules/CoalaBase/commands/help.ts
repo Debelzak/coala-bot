@@ -1,7 +1,6 @@
 import { EmbedBuilder, Interaction as DiscordInteraction, SlashCommandBuilder } from "discord.js"
 import { Interaction } from "../../../models/Interaction";
 import os from "os"
-import Util from "../../../util/utils";
 import Worker from "../../../worker"
 
 const builder = new SlashCommandBuilder()
@@ -14,8 +13,7 @@ export default new Interaction({
     async run(interaction): Promise<void> {
         if(!interaction.isCommand()) return;
         
-        const gitVersion: string = (await Util.getCommitHash()).substring(0, 7);
-        const version: string = (gitVersion !== "null") ? `${gitVersion}-git` : "unknown";
+        const version = Worker.getVersion();
         let availableCommands: string = "";
         for(const module of Worker.loadedModules) {
             availableCommands = availableCommands.concat(`\n[ Módulo: **${module.constructor.name} ] **\n`);
