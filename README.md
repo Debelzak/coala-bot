@@ -59,7 +59,7 @@ docker-compose up -d
 ```shell
 npm install
 npm run build
-docker buildx build -t coala-bot:latest .
+docker buildx build --load -t coala-bot:latest .
 ```
 
 ## 🌟 Tecnologias utilizadas

@@ -10,21 +10,16 @@ class Util {
 
     public static getCommitHash(): string {
         try {
-            const repoDir = './';
-            const headFilePath = path.join(repoDir, '.git', 'HEAD');
-            
-            const headData = fs.readFileSync(headFilePath, 'utf8').trim();
-            const match = headData.match(/^ref: refs\/heads\/(.*)$/);
+            const filePath = path.join('./', 'dist', 'VERSION');
+            const headData = fs.readFileSync(filePath, 'utf8').trim();
     
-            if (match) {
-                const branchFilePath = path.join(repoDir, '.git', 'refs', 'heads', match[1]);
-                const branchData = fs.readFileSync(branchFilePath, 'utf8').trim();
-                return branchData;
-            } else {
+            if (headData) {
                 return headData;
+            } else {
+                return "unknown";
             }
         } catch (err) {
-            return "null";
+            return "unknown";
         }
     }
 }

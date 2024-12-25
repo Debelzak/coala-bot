@@ -5,14 +5,12 @@ WORKDIR /usr/app
 COPY package.json ./package.json
 COPY tsconfig.json ./tsconfig.json
 COPY src ./src
-RUN npm install && npm run build
-
-# Copiar arquivos de runtime
 COPY .git ./.git
-COPY database ./database
-
-# Limpeza
-RUN npm install --omit=dev && rm -rf src tsconfig.json tsconfig.tsbuildinfo
+RUN mkdir database &&\
+    npm install && \
+    npm run build && \
+    npm install --omit=dev && \
+    rm -rf .git src tsconfig.json tsconfig.tsbuildinfo
 
 # Finally
 CMD [ "npm", "start" ]

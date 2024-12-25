@@ -42,7 +42,7 @@ class Worker extends Client {
 
     public start(token: string, guildId?: string) {
         this.greet();
-        this.logger.success(`Inicializando...`);
+        this.logger.success(`Inicializando... (${this.getVersion()})`);
 
         this.botToken = token;
         this.exclusiveGuildId = guildId;
@@ -131,8 +131,11 @@ class Worker extends Client {
     public getVersion() {
         const packageVersion = require('../package.json').version; 
         const gitVersion: string = Util.getCommitHash().substring(0, 7);
-
-        return `v${packageVersion}+${gitVersion}`;
+        if(gitVersion != "unknown") {
+            return `v${packageVersion}+${gitVersion}`;
+        }
+        
+        return `v${packageVersion}`;
     }
 
     private greet() {
@@ -151,7 +154,7 @@ class Worker extends Client {
             ⠀⢰⠁⠀⢸⠀⠀⠀⣿⠁⠀⠙⡟⠒⠒⠉⠀⠀⠀⠀⠀⡇⡎⠀
             ⠀⠘⣄⠀⠸⡆⠀⠀⣿⠀⠀⠀⠁⠀⠀⠀⠀⠀⠀⠀⢀⠟⠁⠀
             ⠀⠀⠘⠦⣀⣷⣀⡼⠽⢦⡀⠀⠀⢀⣀⣀⣀⠤⠄⠒⠁⠀⠀⠀
-            Coala Bot ${this.getVersion()}`);
+                   Coala Bot`);
     }
 }
 
