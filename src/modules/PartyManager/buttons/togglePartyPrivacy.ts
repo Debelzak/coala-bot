@@ -3,7 +3,7 @@ import PartyManager from "../partyManager";
 import { Interaction } from "../../../models/Interaction";
 
 const builder = new ButtonBuilder()
-    .setLabel(`Tornar Privada`)
+    .setLabel(`Alternar Privacidade`)
     .setStyle(ButtonStyle.Primary)
     .setEmoji(`🔒`)
     .setCustomId("btn_togglePartyPrivacy")

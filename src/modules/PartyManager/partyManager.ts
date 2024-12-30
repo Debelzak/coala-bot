@@ -3,6 +3,7 @@ import {
     BaseMessageOptions, EmbedBuilder, ButtonBuilder,
     ActionRowBuilder, Channel,
     Guild,
+    Message,
 } from "discord.js"
 import Party from "./models/Party";
 import Util from "../../util/utils";
@@ -10,6 +11,7 @@ import Module from "../../models/Module";
 import { PartyManagerChannel } from "./models/PartyManagerChannel";
 import * as commands from "./commands"
 import * as buttons from "./buttons"
+import Worker from "../../worker";
 
 class PartyManager extends Module {
     public readonly parties: Map<string, Party> = new Map<string, Party>();
@@ -24,18 +26,94 @@ class PartyManager extends Module {
         this.registerInteractions(commands);
         this.registerInteractions(buttons);
         this.buildManagerCache();
-        this.buildPartyCache();
+        this.rebuildPartyCache();
         this.initPartyManagement();
-    }
-
-    private buildPartyCache() {
-        // TODO: Necessário para manter registro de parties antigas no caso do programa ser reiniciado ou crashar.
     }
 
     private async buildManagerCache(): Promise<void> {
         PartyManagerChannel.DB_GetAll().then((managers) => {
             for(const [key, manager] of managers) {
                 this.addManagerChannel(manager);
+            }
+        });
+    }
+    
+    private rebuildPartyCache() { // TODO: Melhorar! Esse trecho de código é um protótipo.
+        const controlMessages: Map<string, Message> = new Map<string, Message>();
+    
+        const fetchPromises: Promise<void>[] = [];
+        this.client?.channels.cache.forEach((channel) => {
+            if (channel.isVoiceBased()) {
+                fetchPromises.push(
+                    channel.messages.fetch({ after: '0', limit: 1 })
+                        .then((messages) => {
+                            for (const [key, message] of messages) {
+                                if (message.author.id === this.client?.user?.id) {
+                                    controlMessages.set(message.id, message);
+                                }
+                            }
+                        })
+                );
+            }
+        });
+        
+        Promise.all(fetchPromises).then(() => {
+            for(const [key, message] of controlMessages) {
+                let newVer: boolean = false;
+
+                // Recria todas as parties.
+                let ownerId: string = "";
+                let voiceChannel: Channel | undefined = undefined;
+                let manager: PartyManagerChannel | undefined = undefined;
+                let isPrivate: boolean = false;
+                let allowedMembers: string = "";
+                let bannedMembers: string = "";
+    
+                for(const embed of message.embeds) {
+                    if(embed.fields[0]?.value) newVer = (embed.fields[0].value !== Worker.getVersion()) ? true : false;
+                    if(embed.fields[1]?.value) voiceChannel = this.client?.channels.cache.get(embed.fields[1].value.replace(/[<#>]/g, ''));
+                    if(embed.fields[2]?.value) manager = this.managerChannels.get(embed.fields[2].value.replace(/[<#>]/g, ''));
+                    if(embed.fields[3]?.value) isPrivate = (embed.fields[3]?.value === "Privada") ? true : false
+                    if(embed.fields[4]?.value) ownerId = embed.fields[4].value.replace(/[<@>]/g, '');
+                    if(embed.fields[5]?.value) bannedMembers = (embed.fields[5]?.value !== "Nenhum") ? embed.fields[5]?.value : ""
+                    if(embed.fields[6]?.value) allowedMembers = (embed.fields[6]?.value !== "Nenhum") ? embed.fields[6]?.value : ""
+                }
+    
+                if(ownerId !== "" && voiceChannel?.isVoiceBased() && manager) {
+                    const party = new Party(ownerId, voiceChannel, manager);
+                    party.controlMessage = message;
+                    party.isPrivate = isPrivate;
+
+                    // Recupera participantes atuais
+                    for(const [key,member] of voiceChannel.members) {
+                        party.addUser(member);
+                    }
+
+                    // Recupera usuários banidos
+                    const ban = bannedMembers.split(" ");
+                    for(const banMember of ban) {
+                        const member = voiceChannel.guild.members.cache.get(banMember.replace(/[<@>]/g, ''));
+                        if(member) {
+                            party.denyUserEntrance(member);
+                        }
+                    }
+
+                    // Recupera usuários permitidos
+                    const allow = allowedMembers.split(" ");
+                    for(const allowMember of allow) {
+                        const member = voiceChannel.guild.members.cache.get(allowMember.replace(/[<@>]/g, ''));
+                        if(member) {
+                            party.allowUserEntrance(member);
+                        }
+                    }
+
+                    this.ReloadControlMessage(party);
+
+                    if(newVer) party.controlMessage.reply(`Party transferida para nova release: \`${Worker.getVersion()}\`.`);
+
+                    this.parties.set(voiceChannel.id, party);
+                    this.logger.warning(`[${party.voiceChannel.guild.name}] Party recuperada: ${party.voiceChannel.name}`);
+                }
             }
         });
     }
@@ -328,7 +406,9 @@ class PartyManager extends Module {
 
         const embedMessage = new EmbedBuilder()
             .setColor(0x0099FF)
-            .addFields({ name: 'Canal', value: `${party.voiceChannel}`, inline: false})
+            .addFields({ name: 'Versão', value: `${Worker.getVersion()}`, inline: false})
+            .addFields({ name: 'Canal', value: `${party.voiceChannel}`, inline: true})
+            .addFields({ name: 'Iniciado em', value: `<#${party.manager.channelId}>`, inline: true})
             .addFields({ name: 'Privacidade', value: `${(party.isPrivate) ? `Privada` : `Pública`}`, inline: false})
             .addFields({ name: 'Líder', value: `${this.client?.users.cache.get(party.ownerId)}`, inline: false})
             .addFields({ name: 'Membros Banidos', value: `${bannedMembers}`, inline: true})
@@ -337,7 +417,7 @@ class PartyManager extends Module {
         // Define botões e dados vinculados a eles.
         const renameParty = buttons.renameParty.builder as ButtonBuilder
         const togglePrivacy = buttons.togglePartyPrivacy.builder as ButtonBuilder
-        togglePrivacy.setLabel(`${(party.isPrivate) ? "Tornar Pública" : "Tornar Privada"}`)
+        togglePrivacy.setLabel(`${(party.isPrivate) ? "Tornar Pública" : "Tornar Privativa"}`)
         togglePrivacy.setEmoji(`${(party.isPrivate) ? "🔓" : "🔒"}`)
         const banMember = buttons.banPartyMembers.builder as ButtonBuilder
         const allowMember = buttons.allowPartyMembers.builder as ButtonBuilder

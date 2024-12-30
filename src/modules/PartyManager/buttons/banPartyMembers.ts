@@ -61,25 +61,26 @@ export default new Interaction({
                     
                     const membersToBan = newInteraction.values;
                     for(const memberId of membersToBan) {
+                        if(thisParty.ownerId === memberId || newInteraction.user.id === memberId) 
+                        {
+                            return newInteraction.reply({content: "Não é possível banir a sí mesmo.", ephemeral: true});
+                        }
                         if(newInteraction.guild?.members.cache.get(memberId)?.permissionsIn(newInteraction.channelId).has(PermissionsBitField.Flags.Administrator))
                         {
                             return newInteraction.reply({content: "Não é possível banir administradores.", ephemeral: true});
                         }
-
-                        if(thisParty.ownerId === memberId || newInteraction.user.id === memberId) {
-                            return newInteraction.reply({content: "Não é possível banir o líder da party e/ou banir a sí.", ephemeral: true});
-                        }
                     }
                     
                     await newInteraction.deferReply();
+
                     const bannedMembers: GuildMember[] = await PartyManager.BanMembers(membersToBan, thisParty);
                     let reply: string = `Os seguintes membros foram proibidos de participar desta party:`;
                     for(const member of bannedMembers) {
                         reply = reply.concat(` ${member}`);
                     }
                     reply = reply.concat(".");
+
                     PartyManager.ReloadControlMessage(thisParty);
-                    
                     newInteraction.editReply(reply);
                 })
         });
