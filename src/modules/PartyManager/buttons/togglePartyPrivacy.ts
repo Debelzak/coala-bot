@@ -33,17 +33,15 @@ export default new Interaction({
             return;
         }
     
-        await interaction.deferReply({ephemeral: true});
+        const reply = await interaction.deferReply();
 
         await PartyManager.TogglePrivacy(thisParty);
 
         PartyManager.ReloadControlMessage(thisParty);
 
-        await thisParty.controlMessage?.reply({
+        await reply.edit({
             content: (thisParty.isPrivate) ? `A party agora é privada e apenas membros com permissão podem ver ou participar.`
                                            : `A party agora é pública e qualquer membro pode ver ou participar.`
         })
-
-        await interaction.deleteReply();
     }
 })

@@ -70,17 +70,15 @@ export default new Interaction({
         })
 
         if(submitted) {
-            await submitted.deferReply({ephemeral: true});
+            const reply = await submitted.deferReply();
 
             const newName = submitted.fields.getTextInputValue("new_name");
             await PartyManager.RenameParty(thisParty, newName);
 
             PartyManager.ReloadControlMessage(thisParty);
-            await thisParty.controlMessage?.reply({
+            await reply.edit({
                 content: `A party foi renomeada para ${thisParty.voiceChannel}.`
             })
-
-            await submitted.deleteReply();
         }
     }
 })

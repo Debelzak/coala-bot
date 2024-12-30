@@ -65,17 +65,15 @@ export default new Interaction({
         collector.on("collect", (newInteraction) => {
             interaction.deleteReply()
                 .then(async() => {
-                    await newInteraction.deferReply({ephemeral: true})
+                    const reply = await newInteraction.deferReply()
 
                     const newLimit = parseInt(newInteraction.values[0]);
                     
                     await PartyManager.ChangeUserLimit(thisParty, newLimit);
 
-                    await thisParty.controlMessage?.reply({
+                    await reply.edit({
                         content: `O limite de usuários foi alterado para \`${newLimit}\`.`,
                     })
-
-                    await newInteraction.deleteReply();
                 })
                 .catch((error) => {
                     return;
