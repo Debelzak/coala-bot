@@ -73,10 +73,10 @@ class PartyManager extends Module {
                     if(embed.fields[0]?.value) newVer = (embed.fields[0].value !== Worker.getVersion()) ? true : false;
                     if(embed.fields[1]?.value) voiceChannel = this.client?.channels.cache.get(embed.fields[1].value.replace(/[<#>]/g, ''));
                     if(embed.fields[2]?.value) manager = this.managerChannels.get(embed.fields[2].value.replace(/[<#>]/g, ''));
-                    if(embed.fields[3]?.value) isPrivate = (embed.fields[3]?.value === "Privada") ? true : false
+                    if(embed.fields[3]?.value) isPrivate = (embed.fields[3]?.value === "private") ? true : false
                     if(embed.fields[4]?.value) ownerId = embed.fields[4].value.replace(/[<@>]/g, '');
-                    if(embed.fields[5]?.value) bannedMembers = (embed.fields[5]?.value !== "Nenhum") ? embed.fields[5]?.value : ""
-                    if(embed.fields[6]?.value) allowedMembers = (embed.fields[6]?.value !== "Nenhum") ? embed.fields[6]?.value : ""
+                    if(embed.fields[5]?.value) bannedMembers = (embed.fields[5]?.value !== "--") ? embed.fields[5]?.value : ""
+                    if(embed.fields[6]?.value) allowedMembers = (embed.fields[6]?.value !== "--") ? embed.fields[6]?.value : ""
                 }
     
                 if(ownerId !== "" && voiceChannel?.isVoiceBased() && manager) {
@@ -394,8 +394,8 @@ class PartyManager extends Module {
     }
 
     private controlMessage(party: Party): BaseMessageOptions {
-        let bannedMembers: string = (party.bannedParticipants.size > 0) ? "" : "Nenhum"
-        let allowedMembers: string = (party.allowedParticipants.size > 0) ? "" : "Nenhum"
+        let bannedMembers: string = (party.bannedParticipants.size > 0) ? "" : "--"
+        let allowedMembers: string = (party.allowedParticipants.size > 0) ? "" : "--"
         for(const member of party.bannedParticipants) {
             bannedMembers = bannedMembers.concat(`${member[1]} `);
         }
@@ -409,7 +409,7 @@ class PartyManager extends Module {
             .addFields({ name: 'Versão', value: `${Worker.getVersion()}`, inline: false})
             .addFields({ name: 'Canal', value: `${party.voiceChannel}`, inline: true})
             .addFields({ name: 'Iniciado em', value: `<#${party.manager.channelId}>`, inline: true})
-            .addFields({ name: 'Privacidade', value: `${(party.isPrivate) ? `Privada` : `Pública`}`, inline: false})
+            .addFields({ name: 'Privacidade', value: `${(party.isPrivate) ? `private` : `public`}`, inline: false})
             .addFields({ name: 'Líder', value: `${this.client?.users.cache.get(party.ownerId)}`, inline: false})
             .addFields({ name: 'Membros Banidos', value: `${bannedMembers}`, inline: true})
             .addFields({ name: 'Membros Permitidos', value: `${allowedMembers}`, inline: true})

@@ -8,5 +8,6 @@ services:
       - SILENT=${SILENT}
       - BOT_TOKEN=${BOT_TOKEN}
       - GUILD_ID=${GUILD_ID}
+    restart: unless-stopped
     volumes:
       - ./database:/usr/app/database
