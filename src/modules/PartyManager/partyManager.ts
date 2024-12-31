@@ -112,7 +112,13 @@ class PartyManager extends Module {
                     if(newVer) party.controlMessage.reply(`Party transferida para nova release: \`${Worker.getVersion()}\`.`);
 
                     this.parties.set(voiceChannel.id, party);
+
                     this.logger.warning(`[${party.voiceChannel.guild.name}] Party recuperada: ${party.voiceChannel.name}`);
+
+                    // Exclui party se já estiver vazia.
+                    if(party.connectedUsers <= 0) {
+                        this.DeleteParty(party.voiceChannel.id, "Nenhum membro restante.");
+                    }
                 }
             }
         });
@@ -202,10 +208,7 @@ class PartyManager extends Module {
 
                         // Delete party se estiver vazia.
                         if(partyExited.connectedUsers <= 0) {
-                            this.logger.success(`[${guildName}] ${partyExited.voiceChannel.name} (${partyExited.connectedUsers}/${partyExited.voiceChannel.userLimit}) - Nenhum membro restante. Desfazendo...`);
-                            await partyExited.voiceChannel.delete();
-                            this.parties.delete(partyExited.voiceChannel.id);
-                            partyExited.manager.partyCount--;
+                            this.DeleteParty(partyExited.voiceChannel.id, "Nenhum membro restante.");
                         }
                     } catch(error) {
                         this.logger.error(Util.getErrorMessage(error));
@@ -253,6 +256,16 @@ class PartyManager extends Module {
             this.logger.error(`Falha ao criar a party ${manager.GetDefaultName(owner)} - ${Util.getErrorMessage(error)}`);
             return false;
         }
+    }
+
+    public async DeleteParty(channelId: string, reason?: string): Promise<void> {
+        const party = this.parties.get(channelId);
+        if(!party) return;
+
+        this.logger.success(`[${party.voiceChannel.guild.name}] ${party.voiceChannel.name} (${party.connectedUsers}/${party.voiceChannel.userLimit}) - Excluindo party... ${(reason) ? `Motivo: ${reason}` : ``}`);
+        await party.voiceChannel.delete();
+        this.parties.delete(party.voiceChannel.id);
+        party.manager.partyCount--;
     }
 
     public async TogglePrivacy(party: Party): Promise<void> {
