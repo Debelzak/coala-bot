@@ -4,6 +4,7 @@ import {
     ActionRowBuilder, Channel,
     Guild,
     Message,
+    VoiceBasedChannel,
 } from "discord.js"
 import Party from "./models/Party";
 import Util from "../../util/utils";
@@ -128,6 +129,27 @@ class PartyManager extends Module {
         const channel: Channel | undefined = this.client?.channels.cache.get(manager.channelId);
         if(channel?.isVoiceBased()) {
             this.managerChannels.set(channel.id, manager);
+
+            // Se algum membro estiver conectado a um gerenciador. Cria automaticamente uma party e move membros.
+            // Útil caso o bot caia e os membros estiverem utilizando o canal gerenciador temporariamente.
+            const partyLeader = channel.members.first();
+            
+            if(partyLeader) {
+                this.CreateParty(manager, partyLeader, `Party de ${this.client?.user?.displayName}`)
+                .then((partyChannel) => {
+                    if(!partyChannel) return;
+
+                    channel.members.map((member) => {
+                        if(member === partyLeader) return;
+
+                        member.voice.setChannel(partyChannel)
+                        .catch((error) => {
+                            this.logger.error(error);
+                        })
+                    });
+                })
+            }
+
             this.logger.success(`[${channel.guild.name}] Gerenciando canal de voz [${channel.name}].`);
             return true;
         } else {
@@ -218,10 +240,10 @@ class PartyManager extends Module {
         })
     }
 
-    private async CreateParty(manager: PartyManagerChannel, owner: GuildMember, partyName?: string): Promise<boolean> {
+    private async CreateParty(manager: PartyManagerChannel, owner: GuildMember, partyName?: string): Promise<VoiceBasedChannel | undefined> {
         try {
             const channel: Channel | undefined = this.client?.channels.cache.get(manager.channelId);
-            if(!channel?.isVoiceBased()) return false;
+            if(!channel?.isVoiceBased()) return undefined;
 
             const partyVoiceChannel = await channel.clone({
                 name: (partyName) ? partyName : manager.GetDefaultName(owner), 
@@ -251,10 +273,10 @@ class PartyManager extends Module {
 
             await this.ReloadControlMessage(party);
             
-            return true;
+            return party.voiceChannel;
         } catch (error) {
             this.logger.error(`Falha ao criar a party ${manager.GetDefaultName(owner)} - ${Util.getErrorMessage(error)}`);
-            return false;
+            return undefined;
         }
     }
 
