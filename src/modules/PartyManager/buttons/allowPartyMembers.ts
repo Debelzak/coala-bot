@@ -1,4 +1,4 @@
-import { ActionRowBuilder, UserSelectMenuBuilder, ComponentType, GuildMember, ButtonBuilder, ButtonStyle } from "discord.js"
+import { ActionRowBuilder, UserSelectMenuBuilder, ComponentType, GuildMember, ButtonBuilder, ButtonStyle, Message, MessageFlags } from "discord.js"
 import PartyManager from "../partyManager";
 import { Interaction } from "../../../models/Interaction";
 
@@ -20,7 +20,7 @@ export default new Interaction({
         if(!thisParty) {
             await interaction.reply({
                 content: "Você não é líder de nenhuma party no momento.",
-                ephemeral: true
+                flags: MessageFlags.Ephemeral
             })
             return;
         }
@@ -28,7 +28,7 @@ export default new Interaction({
         if(thisParty.ownerId !== interaction.user.id) {
             await interaction.reply({
                 content: "Apenas o líder da party pode realizar esta ação.",
-                ephemeral: true
+                flags: MessageFlags.Ephemeral
             })
             return;
         }
@@ -45,24 +45,24 @@ export default new Interaction({
         const reply = await interaction.reply({
             content: `Selecione membros do servidor para permitir a entrada`,
             components: [firstRow],
-            fetchReply: true,
-            ephemeral: true,
+            withResponse: true,
+            flags: MessageFlags.Ephemeral,
         });
 
-        const collector = reply.createMessageComponentCollector({
+        const collector = reply.resource?.message?.createMessageComponentCollector({
             componentType: ComponentType.UserSelect,
             filter: (i) => i.user.id === interaction.user.id && i.customId === interaction.id,
             time: 60_000,
         });
 
-        collector.on("collect", (newInteraction) => {
+        collector?.on("collect", (newInteraction) => {
             interaction.deleteReply()
                 .then(async() => {
                     
                     const membersToAllow = newInteraction.values;
                     for(const memberId of membersToAllow) {
                         if(newInteraction.user.id === memberId) {
-                            return newInteraction.reply({content: "Não é possível permitir a sí próprio(a).", ephemeral: true});
+                            return newInteraction.reply({content: "Não é possível permitir a sí próprio(a).", flags: MessageFlags.Ephemeral});
                         }
                     }
                     
@@ -78,7 +78,7 @@ export default new Interaction({
                 })
         });
 
-        collector.on("end", (collected, reason) => {
+        collector?.on("end", (collected, reason) => {
             if(collected.size === 0 && reason === "time") interaction.deleteReply();
         })
     }

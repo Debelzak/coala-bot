@@ -1,4 +1,4 @@
-import { ActionRowBuilder, UserSelectMenuBuilder, ComponentType, GuildMember, PermissionsBitField, ButtonBuilder, ButtonStyle } from "discord.js"
+import { ActionRowBuilder, UserSelectMenuBuilder, ComponentType, GuildMember, PermissionsBitField, ButtonBuilder, ButtonStyle, MessageFlags } from "discord.js"
 import PartyManager from "../partyManager";
 import { Interaction } from "../../../models/Interaction";
 
@@ -20,7 +20,7 @@ export default new Interaction({
         if(!thisParty) {
             await interaction.reply({
                 content: "Você não é líder de nenhuma party no momento.",
-                ephemeral: true
+                flags: MessageFlags.Ephemeral
             })
             return;
         }
@@ -28,7 +28,7 @@ export default new Interaction({
         if(thisParty.ownerId !== interaction.user.id) {
             await interaction.reply({
                 content: "Apenas o líder da party pode realizar esta ação.",
-                ephemeral: true
+                flags: MessageFlags.Ephemeral
             })
             return;
         }
@@ -45,17 +45,17 @@ export default new Interaction({
         const reply = await interaction.reply({
             content: `Selecione membros do servidor para proibir a entrada`,
             components: [firstRow],
-            fetchReply: true,
-            ephemeral: true,
+            withResponse: true,
+            flags: MessageFlags.Ephemeral
         });
 
-        const collector = reply.createMessageComponentCollector({
+        const collector = reply.resource?.message?.createMessageComponentCollector({
             componentType: ComponentType.UserSelect,
             filter: (i) => i.user.id === interaction.user.id && i.customId === interaction.id,
             time: 60_000,
         });
 
-        collector.on("collect", (newInteraction) => {
+        collector?.on("collect", (newInteraction) => {
             interaction.deleteReply()
                 .then(async() => {
                     
@@ -63,11 +63,11 @@ export default new Interaction({
                     for(const memberId of membersToBan) {
                         if(thisParty.ownerId === memberId || newInteraction.user.id === memberId) 
                         {
-                            return newInteraction.reply({content: "Não é possível banir a sí mesmo.", ephemeral: true});
+                            return newInteraction.reply({content: "Não é possível banir a sí mesmo.", flags: MessageFlags.Ephemeral});
                         }
                         if(newInteraction.guild?.members.cache.get(memberId)?.permissionsIn(newInteraction.channelId).has(PermissionsBitField.Flags.Administrator))
                         {
-                            return newInteraction.reply({content: "Não é possível banir administradores.", ephemeral: true});
+                            return newInteraction.reply({content: "Não é possível banir administradores.", flags: MessageFlags.Ephemeral});
                         }
                     }
                     
@@ -85,7 +85,7 @@ export default new Interaction({
                 })
         });
 
-        collector.on("end", (collected, reason) => {
+        collector?.on("end", (collected, reason) => {
             if(collected.size === 0 && reason === "time") interaction.deleteReply();
         })
     }

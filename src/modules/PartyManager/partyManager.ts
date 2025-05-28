@@ -5,6 +5,7 @@ import {
     Guild,
     Message,
     VoiceBasedChannel,
+    PartialMessage,
 } from "discord.js"
 import Party from "./models/Party";
 import Util from "../../util/utils";
@@ -184,6 +185,19 @@ class PartyManager extends Module {
     }
 
     private initPartyManagement(): void {
+        
+        // Recria mensagem de controle caso deletada.
+        this.client?.on('messageDelete', async (message: Message | PartialMessage) => {
+            if(!message.channel.isVoiceBased()) return;
+            
+            const party: Party | undefined = (message.channelId) ? this.parties.get(message.channelId) : undefined;
+            if(!party) return;
+
+            if(party.controlMessage?.id === message.id) {
+                this.createControlMessage(party);
+            }
+        })
+
         this.client?.on('voiceStateUpdate', async (oldVoiceState, newVoiceState) => {
             const guildName = (newVoiceState) ? newVoiceState.guild.name : oldVoiceState.guild.name;
 
@@ -191,13 +205,12 @@ class PartyManager extends Module {
             if (newVoiceState.channel !== oldVoiceState.channel) {
                 if(!newVoiceState.member) return;
                 const member: GuildMember = newVoiceState.member;
-                const userName: string = (newVoiceState.member.nickname !== null) ? newVoiceState.member.nickname : newVoiceState.member.displayName;
+                if(!member) return;
 
+                const userName: string = (newVoiceState.member.nickname !== null) ? newVoiceState.member.nickname : newVoiceState.member.displayName;
                 const partyManagerEntered: PartyManagerChannel | undefined = (newVoiceState.channelId) ? this.managerChannels.get(newVoiceState.channelId) : undefined;
                 const partyEntered: Party | undefined = (newVoiceState.channelId) ? this.parties.get(newVoiceState.channelId) : undefined;
                 const partyExited: Party | undefined = (oldVoiceState.channelId) ? this.parties.get(oldVoiceState.channelId) : undefined;
-
-                if(!member) return;
 
                 if(partyManagerEntered) { // Se entrou em canal gerenciado pelo bot (Canal de Criar Party)
                     try {
@@ -263,15 +276,7 @@ class PartyManager extends Module {
             // Move criador da party para a mesma.
             await owner.voice.setChannel(partyVoiceChannel);
             
-            const embed = new EmbedBuilder()
-                .setFooter({text: "⏳ Carregando painel de controle..."});
-
-            // Cria mensagem de controle da party
-            party.controlMessage = await partyVoiceChannel.send({
-                embeds: [embed]
-            });
-
-            await this.ReloadControlMessage(party);
+            await this.createControlMessage(party);
             
             return party.voiceChannel;
         } catch (error) {
@@ -288,6 +293,20 @@ class PartyManager extends Module {
         await party.voiceChannel.delete();
         this.parties.delete(party.voiceChannel.id);
         party.manager.partyCount--;
+    }
+
+    private async createControlMessage(party: Party): Promise<Message> {
+        const embed = new EmbedBuilder()
+        .setFooter({text: "⏳ Carregando painel de controle..."});
+
+        // Cria mensagem de controle da party
+        party.controlMessage = await party.voiceChannel.send({
+            embeds: [embed]
+        });
+
+        await this.ReloadControlMessage(party);
+
+        return party.controlMessage;
     }
 
     public async TogglePrivacy(party: Party): Promise<void> {

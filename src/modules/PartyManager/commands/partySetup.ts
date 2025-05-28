@@ -1,4 +1,4 @@
-import { ActionRowBuilder, ButtonBuilder, Interaction as DiscordInteraction, EmbedBuilder, PermissionFlagsBits, SlashCommandBuilder } from "discord.js"
+import { ActionRowBuilder, ButtonBuilder, Interaction as DiscordInteraction, EmbedBuilder, MessageFlags, PermissionFlagsBits, SlashCommandBuilder } from "discord.js"
 import { Interaction } from "../../../models/Interaction";
 import * as btns from "../buttons"
 
@@ -54,7 +54,7 @@ export default new Interaction({
         const reply = await interaction.reply({
             embeds: [embed],
             components: [row],
-            ephemeral: true,
+            flags: MessageFlags.Ephemeral,
         })
     }
 })

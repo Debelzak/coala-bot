@@ -1,4 +1,4 @@
-import { ActionRowBuilder, ButtonBuilder, ButtonStyle, ChannelSelectMenuBuilder, ChannelType, ComponentType, EmbedBuilder } from "discord.js"
+import { ActionRowBuilder, ButtonBuilder, ButtonStyle, ChannelSelectMenuBuilder, ChannelType, ComponentType, EmbedBuilder, MessageFlags } from "discord.js"
 import { Interaction } from "../../../../models/Interaction";
 import PartyManager from "../../partyManager";
 
@@ -29,20 +29,20 @@ export default new Interaction({
         const reply = await interaction.reply({
             embeds: [embed],
             components: [row],
-            fetchReply: true,
-            ephemeral: true
+            withResponse: true,
+            flags: MessageFlags.Ephemeral
         })
         
-        const collector = reply.createMessageComponentCollector({
+        const collector = reply.resource?.message?.createMessageComponentCollector({
             componentType: ComponentType.ChannelSelect,
             filter: (i) => i.user.id === interaction.user.id && i.customId === interaction.id,
             time: 60_000,
         });
 
-        collector.on("collect", (newInteraction) => {
+        collector?.on("collect", (newInteraction) => {
             interaction.deleteReply()
                 .then(async() => {
-                    await newInteraction.deferReply({ephemeral: true});
+                    await newInteraction.deferReply({flags: MessageFlags.Ephemeral});
 
                     const channelId = newInteraction.values[0];
                     const channel = interaction.client.channels.cache.get(channelId);
@@ -59,7 +59,7 @@ export default new Interaction({
                 })
         });
 
-        collector.on("end", (collected, reason) => {
+        collector?.on("end", (collected, reason) => {
             if(collected.size === 0 && reason === "time") interaction.deleteReply();
         })
     }

@@ -1,4 +1,4 @@
-import { ActionRowBuilder, StringSelectMenuBuilder, StringSelectMenuOptionBuilder, ComponentType, ButtonBuilder, ButtonStyle, GuildMember } from "discord.js"
+import { ActionRowBuilder, StringSelectMenuBuilder, StringSelectMenuOptionBuilder, ComponentType, ButtonBuilder, ButtonStyle, GuildMember, MessageFlags } from "discord.js"
 import PartyManager from "../partyManager";
 import { Interaction } from "../../../models/Interaction";
 
@@ -20,7 +20,7 @@ export default new Interaction({
         if(!thisParty) {
             await interaction.reply({
                 content: "Você não é líder de nenhuma party no momento.",
-                ephemeral: true
+                flags: MessageFlags.Ephemeral
             })
             return;
         }
@@ -28,7 +28,7 @@ export default new Interaction({
         if(thisParty.ownerId !== interaction.user.id) {
             await interaction.reply({
                 content: "Apenas o líder da party pode realizar esta ação.",
-                ephemeral: true
+                flags: MessageFlags.Ephemeral
             })
             return;
         }
@@ -36,7 +36,7 @@ export default new Interaction({
         if(thisParty.connectedUsers <= 1) {
             await interaction.reply({
                 content: `Não há ninguém para transferir a liderança.`,
-                ephemeral: true,
+                flags: MessageFlags.Ephemeral,
             });
             return;
         }
@@ -63,29 +63,29 @@ export default new Interaction({
         const reply = await interaction.reply({
             content: `Selecione um novo líder da Party`,
             components: [firstRow],
-            fetchReply: true,
-            ephemeral: true,
+            withResponse: true,
+            flags: MessageFlags.Ephemeral,
         });
 
-        const collector = reply.createMessageComponentCollector({
+        const collector = reply.resource?.message?.createMessageComponentCollector({
             componentType: ComponentType.StringSelect,
             filter: (i) => i.user.id === interaction.user.id && i.customId === interaction.id,
             time: 60_000,
         });
 
-        collector.on("collect", (newInteraction) => {
+        collector?.on("collect", (newInteraction) => {
             interaction.deleteReply()
                 .then(async() => {
                     const newLeaderId = newInteraction.values[0];
                     const newLeader = PartyManager.TransferOwnership(newLeaderId, thisParty);
                     if(!newLeader) {
-                        return newInteraction.reply({content: `Não foi possível alterar o líder da party, o membro não está disponível.`, ephemeral: true});
+                        return newInteraction.reply({content: `Não foi possível alterar o líder da party, o membro não está disponível.`, flags: MessageFlags.Ephemeral});
                     }
                     
                     PartyManager.ReloadControlMessage(thisParty);
                     newInteraction.reply({
                         content: `Liderança da party transferida.`,
-                        ephemeral: true
+                        flags: MessageFlags.Ephemeral
                     })
                 })
                 .catch((error) => {
@@ -93,7 +93,7 @@ export default new Interaction({
                 })
         });
 
-        collector.on("end", (collected, reason) => {
+        collector?.on("end", (collected, reason) => {
             if(collected.size === 0 && reason === "time") interaction.deleteReply();
         })
     }

@@ -17,8 +17,7 @@ export default new Interaction({
         if(!interaction.isCommand()) return;
         const membro = interaction.options.get("membro")?.member;
         await interaction.reply({
-            content: `:b:ora ${(membro) ? membro : ""}`,
-            ephemeral: false,
+            content: `:b:ora ${(membro) ? membro : ""}`
         })
     }
 })

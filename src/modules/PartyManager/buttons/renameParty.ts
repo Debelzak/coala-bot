@@ -1,4 +1,4 @@
-import { TextInputBuilder, TextInputStyle, ActionRowBuilder, ModalBuilder, ButtonBuilder, ButtonStyle, GuildMember } from "discord.js"
+import { TextInputBuilder, TextInputStyle, ActionRowBuilder, ModalBuilder, ButtonBuilder, ButtonStyle, GuildMember, MessageFlags } from "discord.js"
 import PartyManager from "../partyManager";
 import { Interaction } from "../../../models/Interaction";
 
@@ -20,7 +20,7 @@ export default new Interaction({
         if(!thisParty) {
             await interaction.reply({
                 content: "Você não é líder de nenhuma party no momento.",
-                ephemeral: true
+                flags: MessageFlags.Ephemeral
             })
             return;
         }
@@ -28,7 +28,7 @@ export default new Interaction({
         if(thisParty.ownerId !== interaction.user.id) {
             await interaction.reply({
                 content: "Apenas o líder da party pode realizar esta ação.",
-                ephemeral: true
+                flags: MessageFlags.Ephemeral
             })
             return;
         }
@@ -39,7 +39,7 @@ export default new Interaction({
             if(interaction) {
                 await interaction.reply({
                     content: `A party poderá ser renomeada novamente <t:${Math.ceil(nextRename/1000)}:R>.`,
-                    ephemeral: true,
+                    flags: MessageFlags.Ephemeral,
                 })
             }
             return;

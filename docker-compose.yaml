@@ -10,4 +10,5 @@ services:
       - GUILD_ID=${GUILD_ID}
     restart: unless-stopped
     volumes:
+      - /etc/localtime:/etc/localtime:ro
       - ./database:/usr/app/database

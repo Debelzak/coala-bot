@@ -1,4 +1,4 @@
-import { ActionRowBuilder, ButtonBuilder, ButtonStyle, ComponentType, Interaction as DiscordInteraction, EmbedBuilder, ModalBuilder, StringSelectMenuBuilder, StringSelectMenuOptionBuilder, TextInputBuilder, TextInputStyle } from "discord.js"
+import { ActionRowBuilder, ButtonBuilder, ButtonStyle, ComponentType, Interaction as DiscordInteraction, EmbedBuilder, MessageFlags, ModalBuilder, StringSelectMenuBuilder, StringSelectMenuOptionBuilder, TextInputBuilder, TextInputStyle } from "discord.js"
 import { Interaction } from "../../../../models/Interaction";
 import PartyManager from "../../partyManager";
 
@@ -14,8 +14,8 @@ export default new Interaction({
     async run(interaction): Promise<void> {
         if(!interaction.isButton()) return;
          const reply = await interaction.deferReply({
-            fetchReply: true,
-            ephemeral: true
+            withResponse: true,
+            flags: MessageFlags.Ephemeral
         })
 
         const embed = new EmbedBuilder()
@@ -54,13 +54,13 @@ export default new Interaction({
             components: [row],
         })
 
-        const collector = reply.createMessageComponentCollector({
+        const collector = reply.resource?.message?.createMessageComponentCollector({
             componentType: ComponentType.StringSelect,
             filter: (i) => i.user.id === interaction.user.id && i.customId === interaction.id,
             time: 60_000,
         });
 
-        collector.on("collect", (newInteraction) => {
+        collector?.on("collect", (newInteraction) => {
             interaction.deleteReply()
                 .then(async() => {
                     const selectedChannelId = newInteraction.values[0];
@@ -79,7 +79,7 @@ export default new Interaction({
 
                     if(submitted) {
                         await submitted.deferReply({
-                            ephemeral: true
+                            flags: MessageFlags.Ephemeral
                         });
 
                         const manager = PartyManager.managerChannels.get(selectedChannelId);
@@ -106,7 +106,7 @@ export default new Interaction({
                 })
         });
 
-        collector.on("end", (collected, reason) => {
+        collector?.on("end", (collected, reason) => {
             if(collected.size === 0 && reason === "time") interaction.deleteReply();
         })
     }
