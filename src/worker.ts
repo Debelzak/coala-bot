@@ -8,7 +8,7 @@ import Util from "./util/utils";
 const load_modules: Module[] = [
     modules.CoalaBase,
     modules.PartyManager,
-    modules.ThroneAndLiberty
+    //modules.ThroneAndLiberty
 ]
 
 class Worker extends Client {
