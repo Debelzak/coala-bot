@@ -15,6 +15,8 @@ export default new Interaction({
     builder: builder,
     async run(interaction): Promise<void> {
         if(!interaction.isCommand()) return;
+        if(!interaction.isChatInputCommand()) return;
+
         const membro = interaction.options.get("membro")?.member;
         await interaction.reply({
             content: `:b:ora ${(membro) ? membro : ""}`

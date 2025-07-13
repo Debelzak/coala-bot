@@ -19,6 +19,8 @@ export default new Interaction({
     builder: builder,
     async run(interaction): Promise<void> {
         if(!interaction.isCommand()) return;
+        if(!interaction.isChatInputCommand()) return;
+        
         const itemName = interaction.options.get("item")?.value;
 
         const itemId: string = itemName?.toString() || "";
