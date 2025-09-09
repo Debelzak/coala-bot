@@ -1,6 +1,6 @@
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, ComponentType, Interaction as DiscordInteraction, EmbedBuilder, MessageFlags, ModalBuilder, StringSelectMenuBuilder, StringSelectMenuOptionBuilder, TextInputBuilder, TextInputStyle } from "discord.js"
-import { Interaction } from "../../../../models/Interaction";
-import PartyManager from "../../partyManager";
+import { Interaction } from "../../../../models/Interaction.js";
+import PartyManager from "../../partyManager.js";
 
 const builder = new ButtonBuilder()
     .setCustomId("btn_partySetManagerDefaultUserLimit")

@@ -1,5 +1,5 @@
 import { AttachmentBuilder, SlashCommandBuilder } from "discord.js"
-import { Interaction } from "../../../models/Interaction";
+import { Interaction } from "../../../models/Interaction.js";
 
 const builder = new SlashCommandBuilder()
     .setName("queria")

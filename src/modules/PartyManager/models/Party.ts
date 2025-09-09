@@ -1,6 +1,6 @@
 import { VoiceBasedChannel, GuildMember, Message } from "discord.js";
-import {v4 as uuidv4} from "uuid"
-import { PartyManagerChannel } from "./PartyManagerChannel";
+import { v4 as uuidv4 } from "uuid"
+import { PartyManagerChannel } from "./PartyManagerChannel.js";
 
 export default class Party {
     static readonly renameInterval: number = 5*60*1000;

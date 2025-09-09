@@ -1,5 +1,5 @@
 import dotenv from "dotenv";
-import Worker from "./worker";
+import Worker from "./worker.js";
 
 dotenv.config();
 

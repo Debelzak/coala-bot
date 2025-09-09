@@ -1,13 +1,13 @@
 // Party btn
-export { default as renameParty } from "./renameParty";
-export { default as togglePartyPrivacy } from "./togglePartyPrivacy";
-export { default as transferPartyOwnership } from "./transferPartyOwnership";
-export { default as banPartyMembers } from "./banPartyMembers";
-export { default as allowPartyMembers } from "./allowPartyMembers";
-export { default as changeUserLimit } from "./changeUserLimit";
+export { default as renameParty } from "./renameParty.js";
+export { default as togglePartyPrivacy } from "./togglePartyPrivacy.js";
+export { default as transferPartyOwnership } from "./transferPartyOwnership.js";
+export { default as banPartyMembers } from "./banPartyMembers.js";
+export { default as allowPartyMembers } from "./allowPartyMembers.js";
+export { default as changeUserLimit } from "./changeUserLimit.js";
 
 // Setup
-export { default as partyNewManagerChannel } from "./setup/partyNewManagerChannel";
-export { default as partySetManagerDefaultName } from "./setup/partySetManagerDefaultName";
-export { default as partySetManagerDefaultUserLimit } from "./setup/partySetManagerDefaultUserLimit";
-export { default as partyStopManagement } from "./setup/partyStopManagement";
+export { default as partyNewManagerChannel } from "./setup/partyNewManagerChannel.js";
+export { default as partySetManagerDefaultName } from "./setup/partySetManagerDefaultName.js";
+export { default as partySetManagerDefaultUserLimit } from "./setup/partySetManagerDefaultUserLimit.js";
+export { default as partyStopManagement } from "./setup/partyStopManagement.js";

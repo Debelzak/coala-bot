@@ -1,6 +1,6 @@
 import { TextInputBuilder, TextInputStyle, ActionRowBuilder, ModalBuilder, ButtonBuilder, ButtonStyle, GuildMember, MessageFlags } from "discord.js"
-import PartyManager from "../partyManager";
-import { Interaction } from "../../../models/Interaction";
+import PartyManager from "../partyManager.js";
+import { Interaction } from "../../../models/Interaction.js";
 
 const builder = new ButtonBuilder()
     .setCustomId("btn_renameParty")

@@ -1,5 +1,5 @@
 import { Interaction as DiscordInteraction, SlashCommandBuilder, SlashCommandUserOption } from "discord.js"
-import { Interaction } from "../../../models/Interaction";
+import { Interaction } from "../../../models/Interaction.js";
 
 const builder = new SlashCommandBuilder()
     .setName("bora")

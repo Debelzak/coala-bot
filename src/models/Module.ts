@@ -1,8 +1,8 @@
 import { Client, Interaction as DiscordInteraction, Guild, SlashCommandOptionsOnlyBuilder } from "discord.js"
-import Logger from "../logger";
-import { ExecutableInteraction, Interaction } from "./Interaction";
-import Worker from "../worker"
-import Util from "../util/utils";
+import Logger from "../logger.js";
+import { ExecutableInteraction, Interaction } from "./Interaction.js";
+import Worker from "../worker.js"
+import Util from "../util/utils.js";
 
 export default class Module {
     protected client: Client | null = null;

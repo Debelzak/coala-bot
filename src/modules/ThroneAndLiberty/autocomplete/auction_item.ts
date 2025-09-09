@@ -1,4 +1,4 @@
-import { Interaction } from "../../../models/Interaction";
+import { Interaction } from "../../../models/Interaction.js";
 
 const apiUrl = "https://questlog.gg/throne-and-liberty/api/trpc/actionHouse.getAuctionHouse?input={%22language%22%3A%22pt%22%2C%22regionId%22%3A%22sa-f%22}";
 

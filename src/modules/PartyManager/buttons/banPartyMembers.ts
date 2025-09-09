@@ -1,6 +1,6 @@
 import { ActionRowBuilder, UserSelectMenuBuilder, ComponentType, GuildMember, PermissionsBitField, ButtonBuilder, ButtonStyle, MessageFlags } from "discord.js"
-import PartyManager from "../partyManager";
-import { Interaction } from "../../../models/Interaction";
+import PartyManager from "../partyManager.js";
+import { Interaction } from "../../../models/Interaction.js";
 
 const builder = new ButtonBuilder()
     .setCustomId("btn_banPartyMembers")

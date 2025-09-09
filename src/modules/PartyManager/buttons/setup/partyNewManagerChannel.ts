@@ -1,6 +1,6 @@
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, ChannelSelectMenuBuilder, ChannelType, ComponentType, EmbedBuilder, MessageFlags } from "discord.js"
-import { Interaction } from "../../../../models/Interaction";
-import PartyManager from "../../partyManager";
+import { Interaction } from "../../../../models/Interaction.js";
+import PartyManager from "../../partyManager.js";
 
 const builder = new ButtonBuilder()
     .setCustomId("btn_partyNewManagerChannel")

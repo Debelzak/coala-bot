@@ -1,6 +1,6 @@
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, ComponentType, Interaction as DiscordInteraction, EmbedBuilder, MessageFlags, StringSelectMenuBuilder, StringSelectMenuOptionBuilder } from "discord.js"
-import { Interaction } from "../../../../models/Interaction";
-import PartyManager from "../../partyManager";
+import { Interaction } from "../../../../models/Interaction.js";
+import PartyManager from "../../partyManager.js";
 
 const builder = new ButtonBuilder()
     .setCustomId("btn_partyStopManagement")

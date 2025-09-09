@@ -1,5 +1,6 @@
 import { GuildMember } from "discord.js";
-import { Database } from "sqlite3";
+import sqlite3 from "sqlite3";
+const { Database } = sqlite3;
 
 export class PartyManagerChannel {
     public readonly channelId: string;
@@ -9,7 +10,7 @@ export class PartyManagerChannel {
     public readonly guildName: string;
     public partyCount: number = 0;
 
-    private static readonly db: Database = new Database("./database/PartyManager.db");
+    private static readonly db: sqlite3.Database = new Database("./database/PartyManager.db");
 
     constructor(channelId: string, guildId: string, guildName: string) {
         this.channelId = channelId;

@@ -7,13 +7,13 @@ import {
     VoiceBasedChannel,
     PartialMessage,
 } from "discord.js"
-import Party from "./models/Party";
-import Util from "../../util/utils";
-import Module from "../../models/Module";
-import { PartyManagerChannel } from "./models/PartyManagerChannel";
-import * as commands from "./commands"
-import * as buttons from "./buttons"
-import Worker from "../../worker";
+import Party from "./models/Party.js";
+import Util from "../../util/utils.js";
+import Module from "../../models/Module.js";
+import { PartyManagerChannel } from "./models/PartyManagerChannel.js";
+import * as commands from "./commands/index.js"
+import * as buttons from "./buttons/index.js"
+import Worker from "../../worker.js";
 
 class PartyManager extends Module {
     public readonly parties: Map<string, Party> = new Map<string, Party>();

@@ -1,10 +1,11 @@
 import { Client, GatewayIntentBits, ActivityType, ActivitiesOptions, Guild, SlashCommandBuilder, Partials } from "discord.js";
-import Logger from "./logger";
-import Module from "./models/Module";
+import Logger from "./logger.js";
+import Module from "./models/Module.js";
+import { createRequire } from "module";
 
 // Modules
-import * as modules from "./modules/index";
-import Util from "./util/utils";
+import * as modules from "./modules/index.js";
+import Util from "./util/utils.js";
 const load_modules: Module[] = [
     modules.CoalaBase,
     modules.PartyManager,
@@ -53,7 +54,7 @@ class Worker extends Client {
             .then(() => this.logger.success(`Conectado como ${this.user?.tag}!`))
             .catch((error: Error) => this.logger.error(error.message));
 
-        this.on('ready', async() => {
+        this.on('clientReady', async() => {
             await this.updatePresence();
             for(const module of load_modules) {
                 await this.LoadModule(module);
@@ -129,7 +130,8 @@ class Worker extends Client {
     }
 
     public getVersion() {
-        const packageVersion = require('../package.json').version; 
+        const require = createRequire(import.meta.url);
+        const packageVersion = require("../package.json").version;
         const gitVersion: string = Util.getCommitHash().substring(0, 7);
         if(gitVersion != "unknown") {
             return `v${packageVersion}+${gitVersion}`;

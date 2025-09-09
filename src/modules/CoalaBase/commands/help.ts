@@ -1,7 +1,7 @@
 import { EmbedBuilder, Interaction as DiscordInteraction, SlashCommandBuilder } from "discord.js"
-import { Interaction } from "../../../models/Interaction";
+import { Interaction } from "../../../models/Interaction.js";
 import os from "os"
-import Worker from "../../../worker"
+import Worker from "../../../worker.js"
 
 const builder = new SlashCommandBuilder()
     .setName("help")

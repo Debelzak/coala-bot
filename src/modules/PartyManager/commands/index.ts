@@ -1,1 +1,1 @@
-export { default as partySetup } from "./partySetup"
+export { default as partySetup } from "./partySetup.js"

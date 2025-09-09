@@ -1,6 +1,6 @@
 import { Client } from "discord.js";
-import * as commands from "./commands"
-import Module from "../../models/Module";
+import * as commands from "./commands/index.js"
+import Module from "../../models/Module.js";
 
 class CoalaBase extends Module {
     init(client: Client) {

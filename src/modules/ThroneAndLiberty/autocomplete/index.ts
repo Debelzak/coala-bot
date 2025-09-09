@@ -1,1 +1,1 @@
-export { default as auction_item } from "./auction_item"
+export { default as auction_item } from "./auction_item.js"

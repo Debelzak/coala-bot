@@ -1,1 +1,1 @@
-export { default as tl_auction } from "./tl_auction";
+export { default as tl_auction } from "./tl_auction.js";

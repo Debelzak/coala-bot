@@ -1,6 +1,6 @@
 import { ActionRowBuilder, ButtonBuilder, Interaction as DiscordInteraction, EmbedBuilder, MessageFlags, PermissionFlagsBits, SlashCommandBuilder } from "discord.js"
-import { Interaction } from "../../../models/Interaction";
-import * as btns from "../buttons"
+import { Interaction } from "../../../models/Interaction.js";
+import * as btns from "../buttons/index.js"
 
 const builder = new SlashCommandBuilder()
     .setName("partysetup")
