@@ -123,7 +123,8 @@ class PartyManager extends Module {
                     }
                 }
             }
-        });
+        })
+        .catch((error: Error) => this.logger.error(error.message))
     }
 
     private addManagerChannel(manager: PartyManagerChannel): boolean {
