@@ -257,12 +257,14 @@ class PartyManager extends Module {
         try {
             const channel: Channel | undefined = this.client?.channels.cache.get(manager.channelId);
             if(!channel?.isVoiceBased()) return undefined;
+            if(!this?.client?.user) return undefined;
 
             const partyVoiceChannel = await channel.clone({
                 name: (partyName) ? partyName : manager.GetDefaultName(owner), 
                 userLimit: manager.maxUsers, 
                 permissionOverwrites: [
-                    {allow: "SendMessages", id: channel.guild.roles.everyone.id},
+                    {allow: "ViewChannel", id: this.client.user.id},
+                    {deny: "ViewChannel", id: channel.guild.roles.everyone.id},
                 ]
             });
 
@@ -275,9 +277,19 @@ class PartyManager extends Module {
             
             // Move criador da party para a mesma.
             await owner.voice.setChannel(partyVoiceChannel);
-            
+
+            // Libera party para acesso e permite enviar mensagens
+            await partyVoiceChannel.permissionOverwrites.set(
+                channel.permissionOverwrites.cache.map(overwrite => ({
+                    id: overwrite.id,
+                    allow: overwrite.allow.bitfield,
+                    deny: overwrite.deny.bitfield,
+                    type: overwrite.type,
+                }))
+            );
+
             await this.createControlMessage(party);
-            
+
             return party.voiceChannel;
         } catch (error) {
             this.logger.error(`Falha ao criar a party ${manager.GetDefaultName(owner)} - ${Util.getErrorMessage(error)}`);
@@ -316,13 +328,26 @@ class PartyManager extends Module {
             party.togglePrivacity();
 
             let promises: Promise<any>[] = [];
-            party.currentParticipants.forEach((participant) => {
-                promises.push(party.voiceChannel.permissionOverwrites.edit(participant, {Connect:  true, ViewChannel: true}));
-            })
-
             promises.push(party.voiceChannel.permissionOverwrites.edit(this.client.user, {Connect:  true, ViewChannel: true}));
-            promises.push(party.voiceChannel.permissionOverwrites.edit(party.voiceChannel.guild.roles.everyone, {Connect: !party.isPrivate, ViewChannel: !party.isPrivate}));
-            
+
+            if(party.isPrivate) {
+                party.currentParticipants.forEach((participant) => {
+                    promises.push(party.voiceChannel.permissionOverwrites.edit(participant, {Connect:  true, ViewChannel: true}));
+                })
+            } else {
+                const managerChannel: Channel | undefined = this.client.channels.cache.get(party.manager.channelId);
+                if(!managerChannel || !managerChannel.isVoiceBased()) return;
+                promises.push(party.voiceChannel.permissionOverwrites.set(
+                                managerChannel.permissionOverwrites.cache.map(overwrite => ({
+                                    id: overwrite.id,
+                                    allow: overwrite.allow.bitfield,
+                                    deny: overwrite.deny.bitfield,
+                                    type: overwrite.type,
+                                })
+                            ))
+                )
+            }
+
             await Promise.all(promises);
 
             this.logger.success(`[${party.voiceChannel.guild.name}] A privacidade de [${party.voiceChannel.name}] foi alterada para ${(party.isPrivate) ? "privada" : "pública"}.`);

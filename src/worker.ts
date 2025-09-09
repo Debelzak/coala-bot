@@ -57,7 +57,8 @@ class Worker extends Client {
         this.on('clientReady', async() => {
             await this.updatePresence();
             for(const module of load_modules) {
-                await this.LoadModule(module);
+                await this.LoadModule(module)
+                    .catch((error: Error) => this.logger.error(error.message));
             }
 
             await this.ClearUnusedCommands();
