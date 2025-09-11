@@ -2,7 +2,9 @@ name: Build and Release
 on:
   push:
     branches:
-    - master
+      - master
+    tags-ignore:
+      - '*'
 
 jobs:
   prepare:
@@ -26,7 +28,7 @@ jobs:
     steps:
     - name: Checkout do repositório
       uses: actions/checkout@v4
-
+        
     - name: Preparar Docker Buildx
       uses: docker/setup-buildx-action@v3
 
@@ -45,3 +47,14 @@ jobs:
           --tag debelzak/coala-bot:latest \
           --push \
           .
+  
+    - name: Publicar release no GitHub
+      uses: softprops/action-gh-release@v2
+      with:
+        tag_name: v${{ needs.prepare.outputs.RELEASE_VERSION }}
+        name: Release v${{ needs.prepare.outputs.RELEASE_VERSION }}
+        body: |
+          - Versão: v${{ needs.prepare.outputs.RELEASE_VERSION }}
+          - Imagem Docker: `debelzak/coala-bot:${{ needs.prepare.outputs.RELEASE_VERSION }}`
+      env:
+        GITHUB_TOKEN: ${{ secrets.PAT }}
