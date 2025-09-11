@@ -329,15 +329,17 @@ class PartyManager extends Module {
             party.togglePrivacity();
 
             let promises: Promise<any>[] = [];
-            promises.push(party.voiceChannel.permissionOverwrites.edit(this.client.user, {Connect:  true, ViewChannel: true}));
 
             if(party.isPrivate) {
+                promises.push(party.voiceChannel.permissionOverwrites.edit(party.voiceChannel.guild.roles.everyone.id, {Connect:  false, ViewChannel: false}));
                 party.currentParticipants.forEach((participant) => {
                     promises.push(party.voiceChannel.permissionOverwrites.edit(participant, {Connect:  true, ViewChannel: true}));
                 })
             } else {
                 const managerChannel: Channel | undefined = this.client.channels.cache.get(party.manager.channelId);
                 if(!managerChannel || !managerChannel.isVoiceBased()) return;
+
+                // Reinicia permissões para o padrão
                 promises.push(party.voiceChannel.permissionOverwrites.set(
                                 managerChannel.permissionOverwrites.cache.map(overwrite => ({
                                     id: overwrite.id,
