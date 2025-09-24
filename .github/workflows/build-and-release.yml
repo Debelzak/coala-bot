@@ -55,8 +55,6 @@ jobs:
         tag_name: v${{ needs.prepare.outputs.RELEASE_VERSION }}
         name: v${{ needs.prepare.outputs.RELEASE_VERSION }}
         body: |
-          - Versão: `v${{ needs.prepare.outputs.RELEASE_VERSION }}`
-          - Index digest: `${{ steps.build_image.outputs.IMAGE_DIGEST }}`
           - Imagem Docker: `debelzak/coala-bot:latest@${{ steps.build_image.outputs.IMAGE_DIGEST }}`
       env:
         GITHUB_TOKEN: ${{ secrets.PAT }}

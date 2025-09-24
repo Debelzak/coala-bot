@@ -9,14 +9,17 @@
 
 ## ⁉️ Funções
 
-### Módulo Base
-Módulo com comandos mais básicos.
+### Módulo Base - `CoalaBase`
+Módulo com comandos básicos e com funções específicas do servidor Coala. Você provavelmente deveria desativar/readaptar esse módulo caso deseje utilizar o bot em seu próprio servidor.
+
+`/cc_attr` : Gerencia atributos/watchdog do cargo `@Chegado em call`.
 
 #### Comandos
 `/help` : Informações úteis sobre o bot.</br>
 `/bora` : `!piada interna` Chama um bora</br>
+`/queria` : `!piada interna` 🌈</br>
 
-### Gerenciador de Party
+### Gerenciador de Party - `PartyManager`
 O bot implementa o conceito de Party inspirado nas Parties do PS4/PS5: No lugar de salas estáticas de canais de voz, as salas são criadas dinamicamente de acordo com a necessidade dos usuários, dando ao seu dono total controle sobre aquela sala em específico, deixando de existir quando se encontra vazia, dando possibilidades de privacidade aos membros do servidor e mantendo o servidor sempre limpo.
 
 #### Comandos
