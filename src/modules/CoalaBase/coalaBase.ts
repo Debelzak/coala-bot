@@ -48,7 +48,6 @@ class CoalaBase extends Module {
                 if (newState.channel && !isCandidate) {
                     const timer = setTimeout(() => {
                         this.insertNewVoiceAdeptMember(member);
-                        this.voiceAdeptCandidates.delete(member.id);
                     }, this.VOICE_ADEPT_PARTICIPATION_TIME_MS);
 
                     this.voiceAdeptCandidates.set(member.id, timer);
