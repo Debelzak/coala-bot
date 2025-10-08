@@ -238,14 +238,19 @@ class PartyManager extends Module {
                         // Transfere a liderança ao sair
                         if(partyExited.currentParticipants.size > 0 && member.user.id === partyExited.ownerId) {
                             const nextLeader = Array.from(partyExited.currentParticipants.entries())[0][0];
-                            this.TransferOwnership(nextLeader, partyExited);
-                            this.ReloadControlMessage(partyExited);
+
+                            const member = partyExited.voiceChannel.members.get(nextLeader);
+                            if(member) {
+                                this.TransferOwnership(nextLeader, partyExited);
+                                this.ReloadControlMessage(partyExited);
+                            }
                         }
 
                         // Delete party se estiver vazia.
-                        if(partyExited.connectedUsers <= 0) {
+                        if(partyExited.connectedUsers <= 0 || partyExited.voiceChannel.members.size <= 0) {
                             this.DeleteParty(partyExited.voiceChannel.id, "Nenhum membro restante.");
                         }
+                        
                     } catch(error) {
                         this.logger.error(Util.getErrorMessage(error));
                     }
@@ -314,6 +319,7 @@ class PartyManager extends Module {
 
         // Cria mensagem de controle da party
         party.controlMessage = await party.voiceChannel.send({
+            content: "Controle de Party",
             embeds: [embed]
         });
 
