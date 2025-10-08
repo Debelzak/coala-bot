@@ -12,13 +12,13 @@ export default class VoiceAdeptMember {
         let voiceAdeptMembers = new Map<string, VoiceAdeptMember>();
 
         return new Promise((resolve, reject) => {
-            let voiceAdeptMember = new VoiceAdeptMember();
             VoiceAdeptMember.db.each("SELECT * FROM members", (error: Error, row: VoiceAdeptMember) => {
+                let voiceAdeptMember = new VoiceAdeptMember();
                 voiceAdeptMember.memberId = row.memberId;
                 voiceAdeptMember.guildId = row.guildId;
                 voiceAdeptMember.lastSeen = row.lastSeen;
 
-                voiceAdeptMembers.set(row.memberId, voiceAdeptMember);
+                voiceAdeptMembers.set(voiceAdeptMember.memberId, voiceAdeptMember);
             }, (error: Error, numberOfRows: number) => {
                 if(error) {
                     reject(error);

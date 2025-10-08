@@ -21,7 +21,7 @@ class CoalaBase extends Module {
 
         this.buildVoiceAdeptRolesCache();
         this.buildVoiceAdeptMembersCache();
-
+        
         setInterval(() => this.voiceAdeptRolesTick(), this.VOICE_ADEPT_CHECK_TICK_TIME_MS);
 
         client.on("messageCreate", (message) => {
