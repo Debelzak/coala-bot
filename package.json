@@ -7,7 +7,7 @@
   "scripts": {
     "start": "node .",
     "clear": "rm -rf dist node_modules package-lock.json tsconfig.tsbuildinfo",
-    "build": "tsc -b && cat .git/$(cat .git/HEAD | sed 's/^ref: //') > dist/VERSION",
+    "build": "tsc -b && node scripts/setDistCommitHash.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
