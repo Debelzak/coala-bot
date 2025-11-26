@@ -1,22 +1,32 @@
-import { execSync } from "node:child_process";
-import { writeFileSync, mkdirSync } from "node:fs";
-import { join } from "node:path";
+import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
+import { join, resolve } from "node:path";
 
 try {
-  // Obtém o hash do commit atual
-  const commitHash = execSync("git rev-parse HEAD")
-    .toString()
-    .trim();
+  // Caminho para o diretório .git do projeto
+  const gitDir = resolve(".git");
+
+  // Lê o conteúdo do arquivo HEAD
+  const headFile = readFileSync(join(gitDir, "HEAD"), "utf8").trim();
+
+  let commitHash = "";
+
+  if (headFile.startsWith("ref:")) {
+    // HEAD aponta para um branch, ex: "ref: refs/heads/main"
+    const refPath = headFile.split(" ")[1];
+    commitHash = readFileSync(join(gitDir, refPath), "utf8").trim();
+  } else {
+    // HEAD está detached -> contém diretamente o hash
+    commitHash = headFile;
+  }
 
   // Garante que a pasta dist existe
   mkdirSync("dist", { recursive: true });
 
-  // Caminho do arquivo VERSION
+  // Escreve o hash em dist/VERSION
   const versionFile = join("dist", "VERSION");
-
-  // Escreve o hash
   writeFileSync(versionFile, commitHash + "\n");
+
 } catch (err) {
-  console.error("Erro ao obter versão do Git:", err.message);
+  console.error("Erro ao obter versão:", err.message);
   process.exit(1);
 }
