@@ -38,7 +38,23 @@ class CoalaBase extends Module {
                 const isMember = this.voiceAdeptMembers.has(member.id);
                 const isCandidate = this.voiceAdeptCandidates.has(member.id);
 
+                console.log(isMember);
                 if (isMember) {
+                    // Devolve cargo ao membro em caso de saída/retorno no servidor, etc...
+                    const role = this.voiceAdeptRoles.get(member.guild.id);
+                    if(role) {
+                        console.log("cargo encontrado");
+                        const guildRole = member.guild.roles.cache.get(role.roleId);
+                        if (!guildRole) return;
+                        if(!member.roles.cache.has(guildRole.id)) {
+                            member.roles.add(role.roleId).catch(err => this.logger.error(err.message));
+                            this.logger.success(
+                                `Reatribuindo cargo perdido [${role.roleName}] para [${member.displayName}].`
+                            );
+                        }
+                    }
+
+                    // Atualiza último visto
                     const voiceMember = this.voiceAdeptMembers.get(member.id)!;
                     voiceMember.lastSeen = Date.now();
                     voiceMember.DB_Save();
@@ -83,10 +99,11 @@ class CoalaBase extends Module {
                         `Membro ${member} é ${guildRole}`,
                         guildRole.hexColor
                     );
-                    this.logger.success(
-                        `Adicionando cargo [${role.roleName}] para [${member.displayName}] por atividade em canal de voz.`
-                    );
                 }
+
+                this.logger.success(
+                    `Adicionando cargo [${role.roleName}] para [${member.displayName}] por atividade em canal de voz.`
+                );
             })
             .catch(err => this.logger.error(err.message));
     }
