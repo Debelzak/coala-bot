@@ -33,6 +33,7 @@ class CoalaBase extends Module {
         client.on("voiceStateUpdate", (oldState, newState) => {
             const member = newState.member;
             if (!member) return;
+            if (member.client.application?.bot) return;
 
             if (newState.channel !== oldState.channel) {
                 const isMember = this.voiceAdeptMembers.has(member.id);
